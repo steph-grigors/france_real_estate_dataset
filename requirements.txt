@@ -1,0 +1,18 @@
+colorama
+ipdb
+ipykernel
+matplotlib
+seaborn
+numpy
+pandas
+scipy
+scikit-learn
+google-cloud-bigquery
+google-cloud-storage
+notebook
+pathlib
+# time
+statsmodels
+tensorflow==2.18.0; sys_platform != 'darwin'
+geopandas
+xgboost
