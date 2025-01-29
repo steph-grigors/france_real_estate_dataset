@@ -72,7 +72,7 @@ def save_model(model = None, model_type = MODEL_TYPE) -> None:
     # Save model to gcs
     if MODEL_TARGET == "gcs":
 
-        model_filename = model_path.split("/")[-2:] # e.g. "20230208-161047.h5" for instance
+        model_filename = "/".join(os.path.split(model_path)[-2:])
         client = storage.Client()
         bucket = client.bucket(BUCKET_NAME)
         blob = bucket.blob(f"models/{model_filename}")
@@ -85,7 +85,7 @@ def save_model(model = None, model_type = MODEL_TYPE) -> None:
     return None
 
 
-# def load_model(stage="Production") -> keras.Model:
+def load_model(stage="Production", model_type = MODEL_TYPE) -> keras.Model:
     """
     Return a saved model:
     - locally (latest one in alphabetical order)
@@ -99,8 +99,12 @@ def save_model(model = None, model_type = MODEL_TYPE) -> None:
     if MODEL_TARGET == "local":
         print(Fore.BLUE + f"\nLoad latest model from local registry..." + Style.RESET_ALL)
 
-        # Get the latest model version name by the timestamp on disk
-        local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models")
+        if model_type == 'xgboost':
+            # Get the latest model version name by the timestamp on disk
+            local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models", "xgboost")
+        elif model_type == 'keras':
+            local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models", "keras")
+
         local_model_paths = glob.glob(f"{local_model_directory}/*")
 
         if not local_model_paths:
@@ -110,14 +114,18 @@ def save_model(model = None, model_type = MODEL_TYPE) -> None:
 
         print(Fore.BLUE + f"\nLoad latest model from disk..." + Style.RESET_ALL)
 
-        latest_model = keras.models.load_model(most_recent_model_path_on_disk)
+        if model_type == 'xgboost':
+            latest_model = xgb.Booster().load_model(most_recent_model_path_on_disk)
+        elif model_type == 'keras':
+            latest_model = keras.models.load_model(most_recent_model_path_on_disk)
+        else:
+            return None
 
         print("✅ Model loaded from local disk")
 
         return latest_model
 
     elif MODEL_TARGET == "gcs":
-        # 🎁 We give you this piece of code as a gift. Please read it carefully! Add a breakpoint if needed!
         print(Fore.BLUE + f"\nLoad latest model from GCS..." + Style.RESET_ALL)
 
         client = storage.Client()
@@ -128,7 +136,12 @@ def save_model(model = None, model_type = MODEL_TYPE) -> None:
             latest_model_path_to_save = os.path.join(LOCAL_REGISTRY_PATH, latest_blob.name)
             latest_blob.download_to_filename(latest_model_path_to_save)
 
-            latest_model = keras.models.load_model(latest_model_path_to_save)
+            if model_type == 'xgboost':
+                latest_model = xgb.Booster().load_model(latest_model_path_to_save)
+
+            elif model_type == 'keras':
+                latest_model = keras.models.load_model(latest_model_path_to_save)
+
 
             print("✅ Latest model downloaded from cloud storage")
 

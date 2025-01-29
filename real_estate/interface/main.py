@@ -80,10 +80,10 @@ def cleaning_in_chunks():
                         clean_chunk.to_csv(CLEANED_DATASET_FILE, mode='a', header=False, index=False)
 
                 if not city_mapping_exists:
-                        mapping.to_csv('city_mapping.csv', mode='w', header=True, index=False)
+                        mapping.to_csv(CITY_MAPPING_PATH, mode='w', header=True, index=False)
                         city_mapping_exists = True
                 else:
-                        mapping.to_csv('city_mapping.csv', mode='a', header=False, index=False)
+                        mapping.to_csv(CITY_MAPPING_PATH, mode='a', header=False, index=False)
 
         else:
             raise Exception(Fore.RED +"⚠️ Please first run data_extraction() function to extract the data from the .npz file." + Style.RESET_ALL)
@@ -93,6 +93,11 @@ def cleaning_in_chunks():
     clean_transactions_df = pd.read_csv(CLEANED_DATASET_FILE, chunksize=CHUNK_SIZE)
     total_rows = sum(1 for _ in open(CLEANED_DATASET_FILE))
 
+    clean_city_mapping = pd.read_csv(CITY_MAPPING_PATH)
+    clean_city_mapping.drop_duplicates(inplace=True)
+    clean_city_mapping.to_csv(CITY_MAPPING_PATH)
+
+    print(f"✅ Cleaned city mapping saved")
     print(f'✅ Transactions DataFrame cleaned - Total #rows =  {total_rows}')
 
 #######################################  CLEANING SECODNARY DFs ####################################################################
