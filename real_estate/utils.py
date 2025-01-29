@@ -74,7 +74,6 @@ def create_city_mapping(X: pd.DataFrame, cache_path='city_mapping.csv') -> pd.Da
 
     # Creating a city mapping to re-use for the predictions and saving it to .csv
     city_mapping = X[['unique_city_id', 'ville']].drop_duplicates()
-    city_mapping.to_csv(cache_path, index=False)
 
     return city_mapping
 
