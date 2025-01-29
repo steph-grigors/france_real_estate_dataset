@@ -12,11 +12,12 @@ BQ_DATASET = os.environ.get("BQ_DATASET")
 BQ_REGION = os.environ.get("BQ_REGION")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 INSTANCE = os.environ.get("INSTANCE")
-MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
-MLFLOW_EXPERIMENT = os.environ.get("MLFLOW_EXPERIMENT")
-MLFLOW_MODEL_NAME = os.environ.get("MLFLOW_MODEL_NAME")
-PREFECT_FLOW_NAME = os.environ.get("PREFECT_FLOW_NAME")
-PREFECT_LOG_LEVEL = os.environ.get("PREFECT_LOG_LEVEL")
+MODEL_TYPE = os.environ.get("MODEL_TYPE")
+# MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+# MLFLOW_EXPERIMENT = os.environ.get("MLFLOW_EXPERIMENT")
+# MLFLOW_MODEL_NAME = os.environ.get("MLFLOW_MODEL_NAME")
+# PREFECT_FLOW_NAME = os.environ.get("PREFECT_FLOW_NAME")
+# PREFECT_LOG_LEVEL = os.environ.get("PREFECT_LOG_LEVEL")
 
 
 ##################  CONSTANT PATHS  #####################
@@ -94,5 +95,23 @@ DTYPES_PREPROCESSED= {
     "large_outdoor_space": "category",
     "building_type": "category",
     "price/m²": "float64",
+    "living_area": "float32",
+}
+
+DTYPES_KERAS= {
+    "n_tax_households": "float64",
+    "average_tax_income": "float64",
+    "new_mortgages": "float64",
+    "debt_ratio": "float64",
+    "interest_rates": "float64",
+    "n_rooms": "float32",
+    "year_month_numeric": "int32",
+    "month_sin": "float64",
+    "month_cos": "float64",
+    "no_garden": "int8",
+    "small_outdoor_space": "int8",
+    "average_outdoor_space": "int8",
+    "large_outdoor_space": "int8",
+    "building_type": "int8",
     "living_area": "float32",
 }
