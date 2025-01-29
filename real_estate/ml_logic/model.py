@@ -55,7 +55,7 @@ def train_xgb_model(params, X, y, X_val=None, y_val=None, eval_metric="rmse", ea
     model = xgb.train(
         params=params,
         dtrain=dtrain,
-        num_boost_round=params.get("n_estimators", 100),
+        num_boost_round=params.get("n_estimators", 15),
         evals=evals,
         early_stopping_rounds=early_stopping_rounds,
         verbose_eval=verbose,

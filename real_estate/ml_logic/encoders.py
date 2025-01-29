@@ -8,7 +8,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 def transform_date_transactions(X: pd.DataFrame) -> np.ndarray:
     assert isinstance(X, pd.DataFrame)
 
-    transactions = pd.to_datetime(X['date_transaction'])
+    transactions = X['date_transaction']
     year = transactions.dt.year
     month = transactions.dt.month
 

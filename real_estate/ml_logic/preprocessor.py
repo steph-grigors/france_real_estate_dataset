@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from colorama import Fore, Style
-
 from sklearn.pipeline import make_pipeline
 from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.preprocessing import OneHotEncoder, FunctionTransformer, StandardScaler, MinMaxScaler
 
 
 from real_estate.ml_logic.encoders import *
+from real_estate.params import *
 
 
 def preprocess_features(X: pd.DataFrame) -> np.ndarray:
@@ -19,7 +18,6 @@ def preprocess_features(X: pd.DataFrame) -> np.ndarray:
 
         Stateless operation: "fit_transform()" equals "transform()".
         """
-
         # NUMBER OF ROOMS PIPE
         n_rooms_pipe = make_pipeline(MinMaxScaler())
 
@@ -63,9 +61,6 @@ def preprocess_features(X: pd.DataFrame) -> np.ndarray:
 
         return final_preprocessor
 
-
-    print(Fore.BLUE + "\nPreprocessing features from raw transactions dataframe..." + Style.RESET_ALL)
-
     preprocessor = preprocessor_transactions()
     X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X))
     X_transactions_processed.columns = ['n_rooms', 'year_month_numeric', 'month_sin', 'month_cos',
@@ -74,19 +69,17 @@ def preprocess_features(X: pd.DataFrame) -> np.ndarray:
                            'building_type','price/m²', 'living_area']
 
 
-    # print("✅ X_processed, with shape", X_transactions_processed.shape)
-
     return X_transactions_processed
 
-def final_preprocessor(X_transactions_processed) -> ColumnTransformer:
+def final_preprocessor(X_transactions_merged) ->  np.ndarray:
     def preprocessor_processed_transactions() -> ColumnTransformer:
 
         tax_households_pipeline = make_pipeline(StandardScaler())
         temporal_features_pipeline = make_pipeline(MinMaxScaler())
 
         final_preprocessor = make_column_transformer(
-            (tax_households_pipeline, ['n_foyers_fiscaux', 'revenu_fiscal_moyen']),
-            (temporal_features_pipeline, ['New_mortgages', 'Debt_ratio', 'Interest_rates']),
+            (tax_households_pipeline, ['n_tax_households', 'average_tax_income']),
+            (temporal_features_pipeline, ['new_mortgages','debt_ratio','interest_rates']),
             remainder='passthrough',
             n_jobs=-1
         )
@@ -94,21 +87,12 @@ def final_preprocessor(X_transactions_processed) -> ColumnTransformer:
         return final_preprocessor
 
     preprocessor = preprocessor_processed_transactions()
-    X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X_transactions_processed))
+    X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X_transactions_merged))
     X_transactions_processed.columns = ['n_tax_households', 'average_tax_income',
                                         'new_mortgages', 'debt_ratio',
                                         'interest_rates', 'n_rooms', 'year_month_numeric', 'month_sin', 'month_cos',
                                             'departement', 'unique_city_id',
                                             'no_garden', 'small_outdoor_space', 'average_outdoor_space', 'large_outdoor_space',
                                             'building_type','price/m²', 'living_area']
-
-
-    # ['n_rooms', 'year_month_numeric', 'month_sin', 'month_cos',
-    #                        'departement', 'unique_city_id',
-    #                        'no_garden', 'small_outdoor_space', 'average_outdoor_space', 'large_outdoor_space',
-    #                        'building_type','price/m²', 'living_area', 'new_mortgages',	'debt_ratio',
-    #                        'interest_rates', 'n_tax_households', 'average_tax_income']
-
-    print("✅ X_processed, with shape", X_transactions_processed.shape)
 
     return X_transactions_processed
