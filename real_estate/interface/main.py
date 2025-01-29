@@ -8,7 +8,7 @@ from real_estate.ml_logic import *
 from real_estate.ml_logic.data_extraction import *
 from real_estate.ml_logic.data import *
 from real_estate.ml_logic.preprocessor import *
-from real_estate.ml_logic.model import xgboost_model, train_xgb_model
+from real_estate.ml_logic.model import xgboost_model, train_xgb_model, initialize_keras_model, compile_keras_model, train_keras_model
 from real_estate.ml_logic.registry import save_model, save_results
 
 from real_estate.params import *
@@ -137,7 +137,7 @@ def preprocessing_in_chunks(clean_transactions_df, clean_new_mortgages_df, clean
                 if (chunk_id + 1) % 10 == 0 or chunk_id == total_chunks:
                     print(f"Already processed {chunk_id + 1} chunks out of {total_chunks}...")
 
-                processed_chunk = preprocess_features(chunk)
+                processed_chunk = pre_merging_preprocessor(chunk)
 
                 # Saving to .csv , appending if file exists, writing it file doesn't exist
                 if not processed_dataset_exists:
@@ -215,7 +215,7 @@ def preprocessing_in_chunks(clean_transactions_df, clean_new_mortgages_df, clean
 
         for chunk_id, chunk in enumerate(merged_transactions_df):
             # Apply preprocessing to each chunk
-            chunk_processed = final_preprocessor(chunk)
+            chunk_processed = post_merging_preprocessor(chunk)
             processed_chunks.append(chunk_processed)
 
             # Print progress every 10 iterations
@@ -223,98 +223,164 @@ def preprocessing_in_chunks(clean_transactions_df, clean_new_mortgages_df, clean
                 print(f"Already preprocessed {chunk_id + 1} chunks ...")
 
         # Concatenate all processed chunks into a single DataFrame
-        X_processed = pd.concat(processed_chunks, axis=0, ignore_index=True)
-        X_processed.to_csv(FINAL_PROCESSED_DATASET_FILE, index=False)
-        print(f'✅ Final DataFrame successfully processed - {X_processed.shape}')
+        X_preprocessed = pd.concat(processed_chunks, axis=0, ignore_index=True)
+        X_preprocessed.to_csv(FINAL_PROCESSED_DATASET_FILE, index=False)
+        print(f'✅ Final DataFrame successfully processed - {X_preprocessed.shape}')
     else:
         raise Exception(Fore.RED + "⚠️ Please make sure the have correctly been merged before attempting to finalize the preprocessing." + Style.RESET_ALL)
 
-    print("🎉 preprocess() done")
+    print("🎉 preprocessing() done")
     print(f'🎉 You can now move forward and train your desired model on the preprocessed dataset!')
 
 
-def training(X_processed: pd.DataFrame):
+def training(X_preprocessed: pd.DataFrame, model_type= MODEL_TYPE):
 
-    X_processed = X_processed.astype(DTYPES_PREPROCESSED)
+    X_preprocessed = X_preprocessed.copy()
+    X_preprocessed = X_preprocessed.astype(DTYPES_PREPROCESSED)
+    X_preprocessed.dropna(subset=['n_tax_households','average_tax_income'], axis=0, inplace=True)
+    X_preprocessed = X_preprocessed.reset_index(drop=True)
 
-    y = X_processed.pop('price/m²')
-    X = X_processed
-
-    model = None
+    y = X_preprocessed.pop('price/m²')
+    X = X_preprocessed
 
     X = X.sort_values(by='year_month_numeric', ascending=True)
     X_sorted = X.reset_index(drop=True)
     y_sorted = y.loc[X_sorted.index].reset_index(drop=True)
 
-
     # Splits the dataset into training and testing sets with a 70-30 ratio.
     # The split is performed in an ordered manner to preserve the temporal sequence of the data, ensuring that future data points do not appear in the training set.
     train_split_index = int(0.7 * len(X))
 
-    X_train = X_sorted[:train_split_index].copy()
-    X_test = X_sorted[train_split_index:].copy()
-    y_train = y_sorted[:train_split_index].copy()
-    y_test = y_sorted[train_split_index:].copy()
+    X_train = X_sorted[:train_split_index]
+    X_test = X_sorted[train_split_index:]
+    y_train = y_sorted[:train_split_index]
+    y_test = y_sorted[train_split_index:]
 
    # Further splits the training dataset into training and validation sets with a 80-20 ratio.
     val_split_index = int(0.8 * len(X_train))
 
-    X_train_split = X_train[:val_split_index].copy()
-    X_val_split = X_train[val_split_index:].copy()
-    y_train_split = y_train[:val_split_index].copy()
-    y_val_split = y_train[val_split_index:].copy()
+    X_train_split = X_train[:val_split_index]
+    X_val_split = X_train[val_split_index:]
+    y_train_split = y_train[:val_split_index]
+    y_val_split = y_train[val_split_index:]
 
     print(f"Training set size: {len(X_train)}")
     print(f"Validation set size: {len(X_val_split)}")
     print(f"Testing set size: {len(X_test)}")
 
+    if model_type == 'xgboost':
 
-    params = xgboost_model({
-                            # "n_estimators": 1000,
-                            "learning_rate": 0.05,
-                            "max_depth": 10,
-                            "subsample": 0.9,
-                            "tree_method": "hist",
-                            "colsample_bytree": 0.9,
-                            "objective": "reg:squarederror",
-                            "random_state": 42,
-                            "verbosity": 1,
-                            'gamma': 0.1,
-                            })
+        model = None
+        params = xgboost_model({
+                                # "n_estimators": 50,
+                                "learning_rate": 0.05,
+                                "max_depth": 10,
+                                "subsample": 0.9,
+                                "tree_method": "hist",
+                                "colsample_bytree": 0.9,
+                                "objective": "reg:squarederror",
+                                "random_state": 42,
+                                "verbosity": 1,
+                                'gamma': 0.1,
+                                })
 
-    print("✅ Model instantiated")
+        print("✅ Model instantiated")
 
-    model, metrics = train_xgb_model(params=params,
-                            X = X_train_split, y = y_train_split,
-                            X_val = X_val_split, y_val = y_val_split,
-                            eval_metric="rmse",
-                            early_stopping_rounds=15,  # Patience: stop after 15 rounds without improvement
-                            verbose=True,
+        model, metrics = train_xgb_model(params=params,
+                                X = X_train_split, y = y_train_split,
+                                X_val = X_val_split, y_val = y_val_split,
+                                eval_metric="rmse",
+                                early_stopping_rounds=15,  # Patience: stop after 15 rounds without improvement
+                                verbose=True,
+                                )
+
+        val_rmse = np.min(metrics['validation']['rmse'])
+
+        print(f"✅ Model XgBoost trained with a val_rmse of: {val_rmse}")
+
+        training_params = dict(
+            context="train",
+            row_count=len(X_train),
+            params = params
+        )
+
+        # Save results on the hard drive using real_estate.ml_logic.registry
+        save_results(params=training_params, metrics=dict(rmse=val_rmse))
+
+        # Save model weight on the hard drive (and optionally on GCS too)
+        save_model(model=model)
+
+        return val_rmse
+
+    elif model_type == 'keras':
+
+        model = None
+
+        X_train_categorical = keras_preprocessor(X_train_split).values
+        X_val_categorical = keras_preprocessor(X_val_split).values
+
+        X_train_numeric= X_train_split.drop(columns=['departement', 'unique_city_id'], axis=1).astype(DTYPES_KERAS).values
+        X_val_numeric= X_val_split.drop(columns=['departement', 'unique_city_id'], axis=1).astype(DTYPES_KERAS).values
+
+        y_train = y_train_split
+        y_val =  y_val_split
+
+        X_departement = X_train_categorical[:, 0]
+        X_unique_city = X_train_categorical[:, 1]
+
+        X_departement_val = X_val_categorical[:, 0]
+        X_unique_city_val = X_val_categorical[:, 1]
+
+        learning_rate = 0.0001
+        batch_size = 256
+        patience=10
+
+        if model == None:
+            model = initialize_keras_model(n_numeric_features=X_train_numeric.shape[1])
+
+        model = compile_keras_model(model, learning_rate)
+
+        model, history = train_keras_model(
+            model,
+            X={"departement_input": X_departement,
+               "unique_city_id_input": X_unique_city,
+               "numeric_input": X_train_numeric},
+            y=y_train,
+            batch_size=batch_size,
+            patience=patience,
+            validation_data=(
+                            {"departement_input": X_departement_val,
+                             "unique_city_id_input": X_unique_city_val,
+                             "numeric_input": X_val_numeric},
+                            y_val
                             )
+        )
 
-    val_rmse = np.min(metrics['validation']['rmse'])
+        val_rmse = np.min(history.history['rmse'])
 
-    print(f"✅ Model XgBoost trained with a val_rmse of: {val_rmse}")
+        print(f"✅ Neural Network trained with a val_rmse of: {round(val_rmse, 2)}")
+
+        # Save model and training params
+        params = dict(
+            learning_rate=learning_rate,
+            batch_size=batch_size,
+            patience=patience,
+        )
+
+        # Save results & model
+        save_results(params=params, metrics=dict(mae=val_rmse))
+        save_model(model=model)
+
+    else:
+        raise Exception(Fore.RED + f"⚠️ Please select a valid model_type" + Style.RESET_ALL)
 
 
-    training_params = dict(
-        context="train",
-        training_set_size=DATA_SIZE,
-        row_count=len(X_train),
-    )
+    print("🎉 training() done")
+    print(f"🎉 {model_type} model has been successfully trained!")
 
-    # Save results on the hard drive using real_estate.ml_logic.registry
-    save_results(params=training_params, metrics=dict(rmse=val_rmse))
-
-    # Save model weight on the hard drive (and optionally on GCS too)
-    save_model(model=model)
-
-    print("✅ train() done")
-
-    return val_rmse
 
 
 if __name__ == '__main__':
     # clean_transactions_df, clean_new_mortgages_df, clean_tax_households_df, clean_interest_rates_df, clean_debt_ratio_df = cleaning_in_chunks()
     # preprocessing_in_chunks(clean_transactions_df, clean_new_mortgages_df, clean_tax_households_df, clean_interest_rates_df, clean_debt_ratio_df)
-    training(pd.read_csv('/home/steph-grigors/code/steph-grigors/real_estate_dataset/data/processed_dataset/final_transactions_processed.csv'))
+    training(pd.read_csv(FINAL_PROCESSED_DATASET_FILE))

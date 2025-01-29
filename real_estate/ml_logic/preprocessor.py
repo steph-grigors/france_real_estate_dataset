@@ -10,8 +10,8 @@ from real_estate.ml_logic.encoders import *
 from real_estate.params import *
 
 
-def preprocess_features(X: pd.DataFrame) -> np.ndarray:
-    def preprocessor_transactions() -> ColumnTransformer:
+def pre_merging_preprocessor(X: pd.DataFrame) -> np.ndarray:
+    def preprocessor() -> ColumnTransformer:
         """
         Scikit-learn pipeline that transforms a cleaned dataset of shape (_, 7)
         into a preprocessed one of fixed shape (_, 65).
@@ -61,7 +61,7 @@ def preprocess_features(X: pd.DataFrame) -> np.ndarray:
 
         return final_preprocessor
 
-    preprocessor = preprocessor_transactions()
+    preprocessor = preprocessor()
     X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X))
     X_transactions_processed.columns = ['n_rooms', 'year_month_numeric', 'month_sin', 'month_cos',
                            'departement', 'unique_city_id',
@@ -71,8 +71,8 @@ def preprocess_features(X: pd.DataFrame) -> np.ndarray:
 
     return X_transactions_processed
 
-def final_preprocessor(X_transactions_merged) ->  np.ndarray:
-    def preprocessor_processed_transactions() -> ColumnTransformer:
+def post_merging_preprocessor(X_transactions_merged) ->  np.ndarray:
+    def preprocessor() -> ColumnTransformer:
 
         tax_households_pipeline = make_pipeline(StandardScaler())
         temporal_features_pipeline = make_pipeline(MinMaxScaler())
@@ -86,7 +86,7 @@ def final_preprocessor(X_transactions_merged) ->  np.ndarray:
 
         return final_preprocessor
 
-    preprocessor = preprocessor_processed_transactions()
+    preprocessor = preprocessor()
     X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X_transactions_merged))
     X_transactions_processed.columns = ['n_tax_households', 'average_tax_income',
                                         'new_mortgages', 'debt_ratio',
@@ -96,3 +96,29 @@ def final_preprocessor(X_transactions_merged) ->  np.ndarray:
                                             'building_type','price/m²', 'living_area']
 
     return X_transactions_processed
+
+
+def keras_preprocessor(X_preprocessed) ->  np.ndarray:
+    def preprocessor() -> ColumnTransformer:
+
+        departement_pipeline = make_pipeline(
+            FunctionTransformer(keras_departement_encoder)
+        )
+        unique_city_id_pipeline = make_pipeline(
+            FunctionTransformer(keras_unique_city_id_encoder)
+        )
+
+        final_preprocessor = make_column_transformer(
+            (departement_pipeline, ['departement']),
+            (unique_city_id_pipeline, ['unique_city_id']),
+            remainder='drop',
+            n_jobs=-1
+        )
+
+        return final_preprocessor
+
+    preprocessor = preprocessor()
+    X_preprocessed = pd.DataFrame(preprocessor.fit_transform(X_preprocessed))
+    X_preprocessed.columns = ['departement', 'unique_city_id']
+
+    return X_preprocessed
