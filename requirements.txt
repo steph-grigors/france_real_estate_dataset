@@ -14,3 +14,5 @@ pathlib
 statsmodels
 tensorflow
 xgboost
+fastapi
+uvicorn
