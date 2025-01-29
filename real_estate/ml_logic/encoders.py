@@ -2,6 +2,8 @@ import math
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.preprocessing import LabelEncoder
+
 
 
 
@@ -39,3 +41,16 @@ def feature_engineer_unique_city(X: pd.DataFrame, cache_path='city_mapping.csv')
     X['unique_city_id'] = X.apply(lambda row: (row['departement'], row['id_ville']), axis=1)
 
     return pd.DataFrame(X[['departement', 'unique_city_id']])
+
+
+def keras_departement_encoder(X: pd.DataFrame):
+# Encode 'departement'
+    dept_encoder = LabelEncoder()
+    X['departement'] = dept_encoder.fit_transform(X['departement'])
+    return X['departement'].values.reshape(-1, 1)
+
+def keras_unique_city_id_encoder(X: pd.DataFrame):
+    # Encode 'unique_city_id'
+    city_encoder = LabelEncoder()
+    X['unique_city_id'] = city_encoder.fit_transform(X['unique_city_id'])
+    return X['unique_city_id'].values.reshape(-1, 1) 
