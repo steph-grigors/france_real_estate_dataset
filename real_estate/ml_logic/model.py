@@ -36,7 +36,7 @@ def xgboost_model(params):
     }
     return default_params
 
-def train_xgb_model(params, X, y, X_val=None, y_val=None, eval_metric="rmse", early_stopping_rounds=15, verbose=True):
+def train_xgb_model(params, X, y, X_val=None, y_val=None, eval_metric="rmse", early_stopping_rounds=5, verbose=True):
     """
     Train an XGBoost model using DMatrix with categorical data handling.
     """
@@ -55,7 +55,7 @@ def train_xgb_model(params, X, y, X_val=None, y_val=None, eval_metric="rmse", ea
     model = xgb.train(
         params=params,
         dtrain=dtrain,
-        num_boost_round=params.get("n_estimators", 15),
+        num_boost_round=params.get("n_estimators", 5),
         evals=evals,
         early_stopping_rounds=early_stopping_rounds,
         verbose_eval=verbose,
