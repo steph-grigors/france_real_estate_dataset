@@ -32,7 +32,7 @@ class real_estate:
 
 
 
-def clean_transactions(X: pd.DataFrame, dtypes = DTYPES_RAW) -> pd.DataFrame:
+def clean_transactions(X: pd.DataFrame) -> pd.DataFrame:
     assert isinstance(X, pd.DataFrame)
 
     # Only keeping relevant columns for our model
@@ -62,14 +62,7 @@ def clean_transactions(X: pd.DataFrame, dtypes = DTYPES_RAW) -> pd.DataFrame:
 
     X = X.drop(columns=['surface_locaux_industriels', 'surface_terrains_agricoles'])
 
-    # Cast columns to dtypes_raw
-    for column, dtype in dtypes.items():
-        if column in X.columns:
-            try:
-                X[column] = X[column].astype(dtype)
-            except ValueError as e:
-                print(f"Error casting column {column} to {dtype}: {e}")
-
+    X = X.astype(DTYPES_RAW)
 
     # Dropping rows with NaN values resulting from coercion or filtering
     X = X.dropna()
@@ -92,15 +85,14 @@ def clean_transactions(X: pd.DataFrame, dtypes = DTYPES_RAW) -> pd.DataFrame:
 def clean_data():
     def clean_tax_households(X: pd.DataFrame, city_mapping_path = CITY_MAPPING_PATH) -> pd.DataFrame:
 
-        city_mapping = pd.read_csv(city_mapping_path).copy()
+        city_mapping = pd.read_csv(city_mapping_path)
 
         assert isinstance(X, pd.DataFrame)
         assert isinstance(city_mapping, pd.DataFrame)
 
-        # # Convert 'unique_city_id' back to tuple
-        # city_mapping['unique_city_id'] = city_mapping['unique_city_id'].apply(eval)
+        X = X.copy()
+        X = X[['date', 'departement', 'ville', 'n_foyers_fiscaux', 'revenu_fiscal_moyen']]
 
-        X = X[['date', 'departement', 'ville', 'n_foyers_fiscaux', 'revenu_fiscal_moyen']].copy()
         X['ville'] = X['ville'].apply(lambda row: row.upper())
 
         X_merged = pd.merge(left=X, right=city_mapping, on='ville')
@@ -111,6 +103,11 @@ def clean_data():
                                                             'revenu_fiscal_moyen': 'mean'
                                                             }).reset_index()
 
+        X_merged = X_merged.astype({"unique_city_id": "string",
+                                   "n_foyers_fiscaux": "float64",
+                                   "revenu_fiscal_moyen": "float64"})
+
+
         print(f'✅ Tax households DataFrame cleaned - {X_merged.shape}')
 
         return X_merged
@@ -118,6 +115,8 @@ def clean_data():
 
     def clean_debt_ratio(X: pd.DataFrame) -> pd.DataFrame:
         assert isinstance(X, pd.DataFrame)
+
+        X = X.copy()
 
         X['date'] = pd.to_datetime(X['date'], format='%Y')
         X.set_index('date', inplace=True)
@@ -131,6 +130,8 @@ def clean_data():
     def clean_interest_rates(X: pd.DataFrame) -> pd.DataFrame:
         assert isinstance(X, pd.DataFrame)
 
+        X = X.copy()
+
         X = X.set_index(X['date']).drop('date', axis=1)
         X.index = pd.to_datetime(X.index)
         X = X.sort_index(axis = 0, ascending=True)
@@ -143,6 +144,8 @@ def clean_data():
     def clean_new_mortgages(X: pd.DataFrame) -> pd.DataFrame:
         assert isinstance(X, pd.DataFrame)
 
+        X = X.copy()
+
         X['emprunts_€'] = X['emprunts_M€'] * 1000000
         X.drop('emprunts_M€', axis = 1, inplace=True)
         X = X.set_index(X['date']).sort_index(axis=0, ascending=True).drop('date', axis=1)
@@ -152,7 +155,6 @@ def clean_data():
 
         return X
 
-    # PASS CODE - remove tr_sample and add full transactions
     sorted_names_of_dataframes = ['foyers_fiscaux_df',
                             'taux_interet_df',
                             'flux_nouveaux_emprunts_df',
@@ -202,6 +204,11 @@ def combined_temporal_features_df(clean_new_mortgages: pd.DataFrame, clean_inter
     combined_temporal_features['date'] = combined_temporal_features.index
     combined_temporal_features['year_month_numeric'] = combined_temporal_features['date'].dt.year * 12 + combined_temporal_features['date'].dt.month
     combined_temporal_features.drop('date', axis=1, inplace=True)
+
+    combined_temporal_features = combined_temporal_features.astype({"year_month_numeric": "int32",
+                                                                    "New_mortgages": "float64",
+                                                                    "Debt_ratio": "float32",
+                                                                    "Interest_rates": "float32"})
 
     print(f'✅ Temporal features successfully merged - {combined_temporal_features.shape}')
 
