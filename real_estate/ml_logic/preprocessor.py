@@ -10,92 +10,133 @@ from real_estate.ml_logic.encoders import *
 from real_estate.params import *
 
 
-def pre_merging_preprocessor(X: pd.DataFrame) -> np.ndarray:
+def stateless_preprocessor(X: pd.DataFrame) -> pd.DataFrame:
+
+    # Drop 'ville' column from the original DataFrame
+    X = X.drop(columns=['ville'], axis=1)
+
     def preprocessor() -> ColumnTransformer:
         """
-        Scikit-learn pipeline that transforms a cleaned dataset of shape (_, 7)
-        into a preprocessed one of fixed shape (_, 65).
-
+        Scikit-learn pipeline that transforms a cleaned chunk
+        into a preprocessed one.
         Stateless operation: "fit_transform()" equals "transform()".
         """
-        # NUMBER OF ROOMS PIPE
-        n_rooms_pipe = make_pipeline(MinMaxScaler())
 
         # PRICE PIPE
         price_pipe = make_pipeline(
-            FunctionTransformer(transform_target)
+            FunctionTransformer(transform_target, validate=False)
         )
 
         # UNIQUE CITY PIPE
         unique_city_id_pipe = make_pipeline(
-            FunctionTransformer(feature_engineer_unique_city)
+            FunctionTransformer(feature_engineer_unique_city, validate=False)
         )
 
         # TIME PIPE
         time_pipe = make_pipeline(
-            FunctionTransformer(transform_date_transactions)
+            FunctionTransformer(transform_date_transactions, validate=False)
         )
-
-        # CAT FEATURES OHE
-        OHE = OneHotEncoder(drop='if_binary',
-                            sparse_output=False,
-                            handle_unknown="ignore")
-
-
-        # NUM FEATURES
-        living_area_pipe = make_pipeline(StandardScaler())
-
 
         # COMBINED PREPROCESSOR
         final_preprocessor = ColumnTransformer(
             [
-                ("n_rooms_normalizer", n_rooms_pipe, ['n_pieces']),
                 ("time_preproc", time_pipe, ['date_transaction']),
-                ("unique_city_preproc", unique_city_id_pipe, ['departement', 'id_ville', 'ville']),
-                ("building_type", OHE, ['type_batiment', 'surface_terrains_sols']),
+                ("unique_city_preproc", unique_city_id_pipe, ['departement', 'id_ville']),
                 ("price_preproc", price_pipe, ['prix', 'surface_habitable']),
-                ('living_area_preproc', living_area_pipe, ['surface_habitable'])
             ],
+            remainder="passthrough",
             n_jobs=-1,
         )
 
         return final_preprocessor
 
+    # Fit and transform X
     preprocessor = preprocessor()
-    X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X))
-    X_transactions_processed.columns = ['n_rooms', 'year_month_numeric', 'month_sin', 'month_cos',
-                           'departement', 'unique_city_id',
-                           'no_garden', 'small_outdoor_space', 'average_outdoor_space', 'large_outdoor_space',
-                           'building_type','price/m²', 'living_area']
+    X_processed = preprocessor.fit_transform(X)
+
+    # Get column names for the transformed features
+    transformed_feature_names = (
+        ["year_month_numeric", "month_sin", "month_cos"] +  # Time pipeline
+        ["departement", "unique_city_id"] +  # Unique city pipeline
+        ["log_price/m²", "living_area"] +  # Price pipeline
+        [col for col in X.columns if col not in ['date_transaction', 'departement', 'id_ville', 'prix', "surface_habitable"]]  # Keep other columns
+    )
+
+    # Ensure transformed columns match X_processed shape
+    X_transactions_processed = pd.DataFrame(X_processed, columns=transformed_feature_names, index=X.index)
+
+    return X_transactions_processed.astype(DTYPES_STATELESS_PROCESSED)
 
 
-    return X_transactions_processed
-
-def post_merging_preprocessor(X_transactions_merged) ->  np.ndarray:
+def post_merging_preprocessor(X: pd.DataFrame, fit: bool = True) -> np.ndarray:
+    """
+    Returns a fitted preprocessor for the training set or a preprocessor ready to transform the test set.
+    """
     def preprocessor() -> ColumnTransformer:
+        """
+        Statelful operation: "fit_transform()" does not equal "transform()".
+        """
 
-        tax_households_pipeline = make_pipeline(StandardScaler())
-        temporal_features_pipeline = make_pipeline(MinMaxScaler())
+        # NUMBER OF ROOMS + TEMPORAL FEATURES PIPES - MINMAX
+        numerical_features_pipe = make_pipeline(MinMaxScaler())
 
-        final_preprocessor = make_column_transformer(
-            (tax_households_pipeline, ['n_tax_households', 'average_tax_income']),
-            (temporal_features_pipeline, ['new_mortgages','debt_ratio','interest_rates']),
-            remainder='passthrough',
-            n_jobs=-1
+        # CAT FEATURES OHE
+        cat_pipe_ohe = make_pipeline(OneHotEncoder(drop='if_binary',
+                            sparse_output=False,
+                            handle_unknown="ignore")
+                            )
+
+        # LIVING AREA + TAX JOUSEHOLDS PIPE - STD SCALER
+        num_features_sc_pipe = make_pipeline(StandardScaler())
+
+
+        # COMBINED PREPROCESSOR
+        final_preprocessor = ColumnTransformer(
+            [
+                ("normalizer", numerical_features_pipe, ['n_rooms', 'new_mortgages','debt_ratio','interest_rates']),
+                ("ohe_cat", cat_pipe_ohe, ['building_type', 'outdoor_area']),
+                ('standardizer', num_features_sc_pipe, ['living_area', 'n_tax_households', 'average_tax_income'])
+            ],
+            n_jobs=-1,
+            remainder="passthrough",
         )
 
         return final_preprocessor
 
     preprocessor = preprocessor()
-    X_transactions_processed = pd.DataFrame(preprocessor.fit_transform(X_transactions_merged))
-    X_transactions_processed.columns = ['n_tax_households', 'average_tax_income',
-                                        'new_mortgages', 'debt_ratio',
-                                        'interest_rates', 'n_rooms', 'year_month_numeric', 'month_sin', 'month_cos',
-                                            'departement', 'unique_city_id',
-                                            'no_garden', 'small_outdoor_space', 'average_outdoor_space', 'large_outdoor_space',
-                                            'building_type','price/m²', 'living_area']
 
-    return X_transactions_processed
+    if fit:
+        X_processed = preprocessor.fit_transform(X)
+
+        # Get column names for the transformed features
+        transformed_feature_names = (
+            ['n_rooms', 'new_mortgages','debt_ratio','interest_rates'] +  # NUMBER OF ROOMS + TEMPORAL FEATURES PIPES - MINMAX
+            ['building_type', 'average_outdoor_space', 'large_outdoor_space', 'no_garden', 'small_outdoor_space'] +  # CAT FEATURES OHE
+            ['living_area', 'n_tax_households', 'average_tax_income'] +  # LIVING AREA + TAX HOUSEHOLDS PIPE - STD SCALER
+            [col for col in X.columns if col not in ['n_rooms', 'new_mortgages', 'debt_ratio', 'interest_rates',
+                                            'building_type', 'surface_terrains_sols',
+                                            'living_area', 'n_tax_households', 'average_tax_income', 'outdoor_area']]
+        )
+
+        X_merged_processed = pd.DataFrame(X_processed, columns=transformed_feature_names, index=X.index)
+
+        return X_merged_processed.astype(DTYPES_PREPROCESSED)
+
+    else:
+        X_processed = preprocessor.transform(X)
+        # Get column names for the transformed features
+        transformed_feature_names = (
+                ['n_rooms', 'new_mortgages','debt_ratio','interest_rates'] +  # NUMBER OF ROOMS + TEMPORAL FEATURES PIPES - MINMAX
+                ['building_type', 'average_outdoor_space', 'large_outdoor_space', 'no_garden', 'small_outdoor_space'] +  # CAT FEATURES OHE
+                ['living_area', 'n_tax_households', 'average_tax_income'] +  # LIVING AREA + TAX HOUSEHOLDS PIPE - STD SCALER
+                [col for col in X.columns if col not in ['n_rooms', 'new_mortgages', 'debt_ratio', 'interest_rates',
+                                                'building_type', 'surface_terrains_sols',
+                                                'living_area', 'n_tax_households', 'average_tax_income', 'outdoor_area']]
+            )
+
+        X_merged_processed = pd.DataFrame(X_processed, columns=transformed_feature_names, index=X.index)
+
+        return X_merged_processed.astype(DTYPES_PREPROCESSED)
 
 
 def keras_preprocessor(X_preprocessed) ->  np.ndarray:

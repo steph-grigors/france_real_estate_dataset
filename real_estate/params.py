@@ -29,10 +29,13 @@ LOCAL_REGISTRY_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigor
 NPZ_FILE_PATH = os.path.join(LOCAL_DATA_PATH, "transactions.npz")
 RAW_DATASET_CHUNKS_DIR = os.path.join(LOCAL_DATA_PATH, "raw_dataset", "raw_dataset_chunks")
 RAW_DATASET_OUTPUT_FILE = os.path.join(LOCAL_DATA_PATH, "raw_dataset", "raw_dataset_full", "transactions.csv")
-CLEANED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "transactions_cleaned.csv")
-PROCESSED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "transactions_processed.csv")
-MERGED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "transactions_merged.csv")
-FINAL_PROCESSED_DATASET_FILE=  os.path.join(LOCAL_DATA_PATH, "processed_dataset", "final_transactions_processed.csv")
+CLEANED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "cleaned.csv")
+MERGED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "merged.csv")
+MERGED_TRAIN_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset","train_set", "train.csv")
+MERGED_TEST_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "test_set", "test.csv")
+PREPROCESSED_TRAIN_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "train_set", "train_preprocessed.csv")
+PREPROCESSED_TEST_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "test_set", "test_preprocessed.csv")
+
 
 ##################  CITY MAPPING PATH   #####################
 CITY_MAPPING_PATH = os.path.join(LOCAL_PROJECT_PATH, "city_mapping.csv")
@@ -45,8 +48,6 @@ DTYPES_RAW = {
     "type_batiment": "string",
     "n_pieces": "int16",
     "surface_habitable": "float32",
-    "surface_locaux_industriels": "float32",
-    "surface_terrains_agricoles": "float32",
     "surface_terrains_sols": "float32"
 }
 
@@ -61,28 +62,43 @@ DTYPES_CLEANED = {
     "surface_terrains_sols": "string"
 }
 
-DTYPES_PROCESSED = {
-    "n_rooms": "float32",
+DTYPES_STATELESS_PROCESSED = {
+    "n_pieces": "int16",
     "year_month_numeric": "int32",
     "month_sin": "float64",
     "month_cos": "float64",
-    "departement": "float32",
-    "unique_city_id": "category",
-    "no_garden": "category",
-    "small_outdoor_space": "category",
-    "average_outdoor_space": "category",
-    "large_outdoor_space": "category",
-    "building_type": "category",
-    "price/m²": "float64",
+    "departement": "string",
+    "unique_city_id": "string",
+    "type_batiment": "string",
+    "log_price/m²": "float64",
     "living_area": "float32",
+    "surface_terrains_sols": "string"
+}
+
+DTYPES_MERGED= {
+    "n_tax_households": "float64",
+    "average_tax_income": "float64",
+    "new_mortgages": "float64",
+    "debt_ratio": "float32",
+    "interest_rates": "float32",
+    "n_rooms": "int16",
+    "year_month_numeric": "int32",
+    "month_sin": "float64",
+    "month_cos": "float64",
+    "departement": "string",
+    "unique_city_id": "string",
+    "building_type": "string",
+    "outdoor_area": "string",
+    "log_price/m²": "float64",
+    "living_area": "float32"
 }
 
 DTYPES_PREPROCESSED= {
     "n_tax_households": "float64",
     "average_tax_income": "float64",
     "new_mortgages": "float64",
-    "debt_ratio": "float64",
-    "interest_rates": "float64",
+    "debt_ratio": "float32",
+    "interest_rates": "float32",
     "n_rooms": "float32",
     "year_month_numeric": "int32",
     "month_sin": "float64",
@@ -94,7 +110,7 @@ DTYPES_PREPROCESSED= {
     "average_outdoor_space": "category",
     "large_outdoor_space": "category",
     "building_type": "category",
-    "price/m²": "float64",
+    "log_price/m²": "float64",
     "living_area": "float32",
 }
 

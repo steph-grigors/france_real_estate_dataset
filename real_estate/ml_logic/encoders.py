@@ -10,7 +10,7 @@ from sklearn.preprocessing import LabelEncoder
 def transform_date_transactions(X: pd.DataFrame) -> np.ndarray:
     assert isinstance(X, pd.DataFrame)
 
-    transactions = X['date_transaction']
+    transactions = pd.to_datetime(X['date_transaction'])
     year = transactions.dt.year
     month = transactions.dt.month
 
@@ -30,15 +30,17 @@ def transform_target(X: pd.DataFrame) -> pd.Series:
     assert isinstance(X, pd.DataFrame)
 
     price_per_sqm = X['prix']/X['surface_habitable']
+    price_per_sqm = price_per_sqm.replace({0: 1e-5, np.nan: 1e-5})
 
-    return pd.DataFrame({'price/m²': price_per_sqm
-                         })
+    return pd.DataFrame({'log_price/m²': np.log(price_per_sqm),
+                         'surface_habitable': X['surface_habitable']}
+                        )
 
 
-def feature_engineer_unique_city(X: pd.DataFrame, cache_path='city_mapping.csv') -> pd.DataFrame:
+def feature_engineer_unique_city(X: pd.DataFrame) -> pd.DataFrame:
     assert isinstance(X, pd.DataFrame)
 
-    X['unique_city_id'] = X.apply(lambda row: (row['departement'], row['id_ville']), axis=1)
+    X['unique_city_id'] = X.apply(lambda row: (int(row['departement']), int(row['id_ville'])), axis=1)
 
     return pd.DataFrame(X[['departement', 'unique_city_id']])
 
@@ -53,4 +55,4 @@ def keras_unique_city_id_encoder(X: pd.DataFrame):
     # Encode 'unique_city_id'
     city_encoder = LabelEncoder()
     X['unique_city_id'] = city_encoder.fit_transform(X['unique_city_id'])
-    return X['unique_city_id'].values.reshape(-1, 1) 
+    return X['unique_city_id'].values.reshape(-1, 1)
