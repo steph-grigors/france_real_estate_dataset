@@ -28,8 +28,9 @@ mlruns
 *.h5
 
 # artifacts
-artifacts/*
-
+artifacts/models/*
+artifacts/params/*
+artifacts/metrics/*
 
 
 
