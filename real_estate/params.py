@@ -2,8 +2,8 @@ import os
 
 ##################  VARIABLES  #####################
 DATA_SIZE = os.environ.get("DATA_SIZE")
-DATA_EXTRACTION_CHUNK_SIZE  = int(os.environ.get("DATA_EXTRACTION_CHUNK_SIZE"))
-CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE"))
+DATA_EXTRACTION_CHUNK_SIZE  = int(os.environ.get("DATA_EXTRACTION_CHUNK_SIZE", 50000))
+CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", 50000))
 MODEL_TARGET = os.environ.get("MODEL_TARGET")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 GCP_PROJECT = os.environ.get("GCP_PROJECT")
@@ -13,6 +13,7 @@ BQ_REGION = os.environ.get("BQ_REGION")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 INSTANCE = os.environ.get("INSTANCE")
 MODEL_TYPE = os.environ.get("MODEL_TYPE")
+
 # MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 # MLFLOW_EXPERIMENT = os.environ.get("MLFLOW_EXPERIMENT")
 # MLFLOW_MODEL_NAME = os.environ.get("MLFLOW_MODEL_NAME")
@@ -23,23 +24,39 @@ MODEL_TYPE = os.environ.get("MODEL_TYPE")
 ##################  CONSTANT PATHS  #####################
 LOCAL_PROJECT_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset")
 LOCAL_DATA_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data")
-LOCAL_REGISTRY_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors", "real_estate_dataset", "training_outputs")
+LOCAL_REGISTRY_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors", "real_estate_dataset", "artifacts")
+
+RAW_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'raw_dataset')
+CLEANED_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'cleaned_dataset')
+MERGED_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'merged_dataset')
+PROCESSED_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'processed_dataset')
+
+
 
 ##################  DATA EXTRACTION & PROCESSING PATHS  #####################
-NPZ_FILE_PATH = os.path.join(LOCAL_DATA_PATH, "transactions.npz")
-RAW_DATASET_CHUNKS_DIR = os.path.join(LOCAL_DATA_PATH, "raw_dataset", "raw_dataset_chunks")
-RAW_DATASET_OUTPUT_FILE = os.path.join(LOCAL_DATA_PATH, "raw_dataset", "raw_dataset_full", "transactions.csv")
-CLEANED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "cleaned.csv")
-MERGED_DATASET_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "merged.csv")
-MERGED_TRAIN_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset","train_set", "train.csv")
-MERGED_TEST_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "test_set", "test.csv")
-PREPROCESSED_TRAIN_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "train_set", "train_preprocessed.csv")
-PREPROCESSED_TEST_FILE = os.path.join(LOCAL_DATA_PATH, "processed_dataset", "test_set", "test_preprocessed.csv")
+NPZ_FILE_PATH = os.path.join(RAW_DATASET_FOLDER, "transactions.npz")
+RAW_DATASET_CHUNKS_DIR = os.path.join(RAW_DATASET_FOLDER, "raw_dataset_chunks")
+RAW_DATASET_OUTPUT_FILE = os.path.join(RAW_DATASET_FOLDER, "raw_dataset_full", "transactions.csv")
+
+CLEANED_DATASET_FILE = os.path.join(CLEANED_DATASET_FOLDER, "cleaned_transactions_df.csv")
+
+MERGED_DATASET_FILE = os.path.join(MERGED_DATASET_FOLDER, "merged_dataset.csv")
+MERGED_TRAIN_FILE = os.path.join(MERGED_DATASET_FOLDER,"train_set", "train.csv")
+MERGED_TEST_FILE = os.path.join(MERGED_DATASET_FOLDER, "test_set", "test.csv")
+
+PREPROCESSED_TRAIN_FILE = os.path.join(PROCESSED_DATASET_FOLDER, "train_preprocessed.csv")
+PREPROCESSED_TEST_FILE = os.path.join(PROCESSED_DATASET_FOLDER, "test_preprocessed.csv")
 
 
-##################  CITY MAPPING PATH   #####################
-CITY_MAPPING_PATH = os.path.join(LOCAL_PROJECT_PATH, "city_mapping.csv")
 
+##################  ARTIFACTS & TRAINING PARAMS PATH   #####################
+PREPROCESSOR_PATH = os.path.join(LOCAL_REGISTRY_PATH, "preprocessor","preprocessor.pkl")
+CITY_MAPPING_PATH = os.path.join(LOCAL_REGISTRY_PATH, "city_mapping.csv")
+
+
+
+
+##################  DTYPES FOR MAPPING  #####################
 DTYPES_RAW = {
     "prix": "float64",
     "departement": "int16",
@@ -70,7 +87,7 @@ DTYPES_STATELESS_PROCESSED = {
     "departement": "string",
     "unique_city_id": "string",
     "type_batiment": "string",
-    "log_price/m²": "float64",
+    "log_price_per_m2": "float64",
     "living_area": "float32",
     "surface_terrains_sols": "string"
 }
@@ -89,7 +106,7 @@ DTYPES_MERGED= {
     "unique_city_id": "string",
     "building_type": "string",
     "outdoor_area": "string",
-    "log_price/m²": "float64",
+    "log_price_per_m2": "float64",
     "living_area": "float32"
 }
 
@@ -110,7 +127,7 @@ DTYPES_PREPROCESSED= {
     "average_outdoor_space": "category",
     "large_outdoor_space": "category",
     "building_type": "category",
-    "log_price/m²": "float64",
+    "log_price_per_m2": "float64",
     "living_area": "float32",
 }
 
