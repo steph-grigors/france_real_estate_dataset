@@ -9,6 +9,8 @@ from keras.models import Model
 from keras.layers import Input, Dense, Embedding, Flatten, Concatenate, BatchNormalization, Dropout
 from keras import Sequential, layers, regularizers, optimizers
 from keras.callbacks import EarlyStopping
+from keras.metrics import RootMeanSquaredError
+
 
 
 
@@ -159,34 +161,35 @@ def train_keras_model(
         return model, history
 
 
-    # def evaluate_model(
-    #         model: Model,
-    #         X: np.ndarray,
-    #         y: np.ndarray,
-    #         batch_size=64
-    #     ) -> Tuple[Model, dict]:
-    #     """
-    #     Evaluate trained model performance on the dataset
-    #     """
+def evaluate_model(
+        model: Model,
+        X: np.ndarray,
+        y: np.ndarray,
+        batch_size=64,
+    ) -> Tuple[Model, dict]:
+    """
+    Evaluate trained model performance on the dataset
+    """
 
-    #     print(Fore.BLUE + f"\nEvaluating model on {len(X)} rows..." + Style.RESET_ALL)
+    print(Fore.BLUE + f"\nEvaluating model" + Style.RESET_ALL)
 
-    #     if model is None:
-    #         print(f"\n❌ No model to evaluate")
-    #         return None
+    if model is None:
+        print(f"\n❌ No model to evaluate")
+        return None
 
-    #     metrics = model.evaluate(
-    #         x=X,
-    #         y=y,
-    #         batch_size=batch_size,
-    #         verbose=0,
-    #         # callbacks=None,
-    #         return_dict=True
-    #     )
+    metrics = model.evaluate(
+        x=X,
+        y=y,
+        batch_size=batch_size,
+        verbose=0,
+        # callbacks=None,
+        return_dict=True,
+    )
 
-    #     loss = metrics["loss"]
-    #     mae = metrics["mae"]
+    loss = metrics["loss"]
+    rmse = metrics["rmse"]
 
-    #     print(f"✅ Model evaluated, MAE: {round(mae, 2)}")
+    print(f"✅ Model evaluated, RMSE: {round(rmse, 2)}")
 
-    #     return metrics
+    return metrics
+

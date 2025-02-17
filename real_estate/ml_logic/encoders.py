@@ -32,7 +32,7 @@ def transform_target(X: pd.DataFrame) -> pd.Series:
     price_per_sqm = X['prix']/X['surface_habitable']
     price_per_sqm = price_per_sqm.replace({0: 1e-5, np.nan: 1e-5})
 
-    return pd.DataFrame({'log_price/m²': np.log(price_per_sqm),
+    return pd.DataFrame({'log_price_per_m2': np.log(price_per_sqm),
                          'surface_habitable': X['surface_habitable']}
                         )
 
