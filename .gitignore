@@ -1,0 +1,38 @@
+.env
+.envrc
+
+# OS generated files #
+######################
+.DS_Store
+__MACOSX
+# Jupiter Notebook #
+.pytest_cache
+__pycache__
+*checkpoint.ipynb
+*.ipynb_checkpoints
+real_estate_notebook.ipynb
+notebooks/data
+
+
+# inteliJ #
+.idea
+*.gz
+*PKG-INFO
+*.egg-info
+*.csv
+*.zip
+mlruns
+*.sqlite
+*.pickle
+*.json
+*.h5
+
+# artifacts
+artifacts/*
+
+
+
+
+
+# IDE #
+*.vscode
