@@ -12,13 +12,15 @@ class real_estate:
         """
 
         #Define path to data
-        data_path = os.path.join(LOCAL_DATA_PATH)
+        raw_data_path = os.path.join(RAW_DATASET_FOLDER)
 
         #Create the dictionnary
-        file_names = os.listdir(data_path)
+        file_names = os.listdir(raw_data_path)
 
-        for file_to_remove in ['transactions_sample.csv', 'transactions.npz', 'processed_dataset', 'raw_dataset']:
-            file_names.remove(file_to_remove)
+        for file_to_remove in ['transactions_sample.csv', 'transactions.npz', 'raw_dataset_chunks', 'raw_dataset_full']:
+            if file_to_remove in file_names:
+                file_names.remove(file_to_remove)
+
 
         suffix = '_df'
         clean_file_names = [file.replace('.csv', suffix) for file in file_names]
@@ -26,7 +28,7 @@ class real_estate:
         data = {}
 
         for files, paths in zip(clean_file_names, file_names):
-            data[files] = pd.read_csv(os.path.join(data_path, paths))
+            data[files] = pd.read_csv(os.path.join(raw_data_path, paths))
 
         return data
 
@@ -155,6 +157,8 @@ def clean_data():
 
         return X
 
+    ##################  DATA EXTRACTION & PROCESSING PATHS  #####################
+
     sorted_names_of_dataframes = ['foyers_fiscaux_df',
                             'taux_interet_df',
                             'flux_nouveaux_emprunts_df',
@@ -172,7 +176,9 @@ def clean_data():
     cleaned_dataframes_dictionnary = {}
     for df_name, cleaning_function in zip(sorted_names_of_dataframes, sorted_names_of_cleaning_functions):
         # Apply the cleaning function to the DataFrame
-        cleaned_dataframes_dictionnary[df_name] = cleaning_function(dataframes_dictionnary[df_name])
+        cleaned_df = cleaning_function(dataframes_dictionnary[df_name])
+        cleaned_df.to_csv(os.path.join(CLEANED_DATASET_FOLDER, 'cleaned_' + df_name + '.csv'), index=False)
+        cleaned_dataframes_dictionnary[df_name] = cleaned_df
 
     return cleaned_dataframes_dictionnary
 

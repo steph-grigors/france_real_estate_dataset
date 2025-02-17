@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
+import joblib
+
 import ipdb
+
 
 from colorama import Fore, Style
 
@@ -8,8 +11,8 @@ from real_estate.ml_logic import *
 from real_estate.ml_logic.data_extraction import *
 from real_estate.ml_logic.data import *
 from real_estate.ml_logic.preprocessor import *
-from real_estate.ml_logic.model import xgboost_model, train_xgb_model, initialize_keras_model, compile_keras_model, train_keras_model
-from real_estate.ml_logic.registry import save_model, save_results
+from real_estate.ml_logic.model import xgboost_model, train_xgb_model, initialize_keras_model, compile_keras_model, train_keras_model, evaluate_model
+from real_estate.ml_logic.registry import save_model, save_results, load_model
 
 from real_estate.params import *
 from real_estate.utils import *
@@ -25,7 +28,7 @@ def data_extraction():
     concatenate_csv_files(RAW_DATASET_CHUNKS_DIR, RAW_DATASET_OUTPUT_FILE)
 
 
-def cleaning_in_chunks():
+def cleaning_in_chunks() -> None:
 
     raw_dataset_exists = os.path.isfile(RAW_DATASET_OUTPUT_FILE) and os.path.getsize(RAW_DATASET_OUTPUT_FILE) > 0
     cleaned_dataset_exists =  os.path.isfile(CLEANED_DATASET_FILE) and os.path.getsize(CLEANED_DATASET_FILE) > 0
@@ -44,17 +47,8 @@ def cleaning_in_chunks():
         else:
             print("✅ Skipping cleaning as the cleaned dataset already exists.")
 
-        # Cleaning secondary DataFrames using clean_data() function from data.py
-        cleaned_dataframes_dictionnary = clean_data()
-        clean_new_mortgages_df = cleaned_dataframes_dictionnary['flux_nouveaux_emprunts_df']
-        clean_tax_households_df = cleaned_dataframes_dictionnary['foyers_fiscaux_df']
-        clean_interest_rates_df = cleaned_dataframes_dictionnary['taux_interet_df']
-        clean_debt_ratio_df = cleaned_dataframes_dictionnary['taux_endettement_df']
-
         print(Fore.YELLOW + f'📁 Cleaned transactions DataFrame fetched from cache - Total #rows =  {total_rows}' + Style.RESET_ALL)
 
-
-        return clean_new_mortgages_df, clean_tax_households_df, clean_interest_rates_df, clean_debt_ratio_df
 
     else:
         if raw_dataset_exists:
@@ -92,31 +86,36 @@ def cleaning_in_chunks():
         else:
             raise Exception(Fore.RED +"⚠️ Please first run data_extraction() function to extract the data from the .npz file." + Style.RESET_ALL)
 
+
     clean_city_mapping = pd.read_csv(CITY_MAPPING_PATH)
     clean_city_mapping.drop_duplicates(inplace=True, ignore_index=True)
     clean_city_mapping.to_csv(CITY_MAPPING_PATH, header=True, index=False)
 
     print(f"✅ Cleaned city mapping saved")
-    print(f'✅ Transactions DataFrame cleaned - Total #rows =  {total_rows}')
+    print(f'✅ Transactions DataFrame cleaned and saved - Total #rows =  {total_rows}')
 
 #######################################  CLEANING SECONDARY DFs ####################################################################
 
     # Cleaning secondary DataFrames using clean_data() function from data.py
     cleaned_dataframes_dictionnary = clean_data()
 
-    clean_new_mortgages_df = cleaned_dataframes_dictionnary['flux_nouveaux_emprunts_df']
-    clean_tax_households_df = cleaned_dataframes_dictionnary['foyers_fiscaux_df']
-    clean_interest_rates_df = cleaned_dataframes_dictionnary['taux_interet_df']
-    clean_debt_ratio_df = cleaned_dataframes_dictionnary['taux_endettement_df']
+    print(f'✅ Secondary DataFrames cleaned and saved')
+
+    # clean_new_mortgages_df = cleaned_dataframes_dictionnary['flux_nouveaux_emprunts_df']
+    # clean_tax_households_df = cleaned_dataframes_dictionnary['foyers_fiscaux_df']
+    # clean_interest_rates_df = cleaned_dataframes_dictionnary['taux_interet_df']
+    # clean_debt_ratio_df = cleaned_dataframes_dictionnary['taux_endettement_df']
 
     print('🎉 Cleaning and mapping done')
     print('🎉 You can now preprocess the DataFrames before being able to train a model!\n')
 
-    return clean_new_mortgages_df, clean_tax_households_df, clean_interest_rates_df, clean_debt_ratio_df
 
+def preprocessing_in_chunks() -> None:
 
-def preprocessing_in_chunks(clean_new_mortgages_df: pd.DataFrame, clean_tax_households_df: pd.DataFrame, clean_interest_rates_df: pd.DataFrame, clean_debt_ratio_df: pd.DataFrame):
-
+    clean_new_mortgages_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_flux_nouveaux_emprunts_df.csv'))
+    clean_tax_households_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_foyers_fiscaux_df.csv'))
+    clean_interest_rates_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_taux_interet_df.csv'))
+    clean_debt_ratio_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_taux_endettement_df.csv'))
 
     #######################################  MERGING DATAFRAMES ####################################################################
 
@@ -153,7 +152,7 @@ def preprocessing_in_chunks(clean_new_mortgages_df: pd.DataFrame, clean_tax_hous
                 merged_chunks.append(merged_chunk)
 
             X_merged = pd.concat(merged_chunks, axis=0, ignore_index=True)
-            X_merged.columns = ['year_month_numeric','month_sin','month_cos','departement','unique_city_id', 'log_price/m²',
+            X_merged.columns = ['year_month_numeric','month_sin','month_cos','departement','unique_city_id', 'log_price_per_m2',
                                 'living_area', 'building_type', 'n_rooms', 'outdoor_area',
                             'new_mortgages','debt_ratio','interest_rates','n_tax_households','average_tax_income'
                                 ]
@@ -182,14 +181,14 @@ def preprocessing_in_chunks(clean_new_mortgages_df: pd.DataFrame, clean_tax_hous
 
 #######################################  STATEFUL PREPROCESSOR ####################################################################
 
+# >>>>>>>>>>>>>>>>>>>>TRAIN SET
     train_processed_exists = os.path.isfile(PREPROCESSED_TRAIN_FILE)
-    test_processed_exists = os.path.isfile(PREPROCESSED_TEST_FILE)
     train_set_exists=  os.path.isfile(MERGED_TRAIN_FILE)
     test_set_exists = os.path.isfile(MERGED_TEST_FILE)
-
+    test_processed_exists = os.path.isfile(PREPROCESSED_TEST_FILE)
 
     if train_processed_exists and test_processed_exists:
-        print("✅ Skipping processing as the preprocessed files already exists.")
+        print("✅ Skipping processing as the preprocessed train dataframe already exists.")
 
     else:
         if train_set_exists:
@@ -204,7 +203,8 @@ def preprocessing_in_chunks(clean_new_mortgages_df: pd.DataFrame, clean_tax_hous
                 if (chunk_id + 1) % 10 == 0 or chunk_id == total_chunks:
                     print(f"Already processed {chunk_id + 1} chunks out of {total_chunks}...")
 
-                preprocessed_train_chunk = post_merging_preprocessor(chunk)
+                preprocessed_train_chunk, fitted_preprocessor = post_merging_preprocessor(chunk, fit=True)
+                joblib.dump(fitted_preprocessor, PREPROCESSOR_PATH)
 
                 # Saving to .csv , appending if file exists, writing it file doesn't exist
                 if not train_processed_exists:
@@ -214,13 +214,44 @@ def preprocessing_in_chunks(clean_new_mortgages_df: pd.DataFrame, clean_tax_hous
                     preprocessed_train_chunk.to_csv(PREPROCESSED_TRAIN_FILE, mode='a', header=False, index=False)
 
             total_rows = sum(1 for _ in open(PREPROCESSED_TRAIN_FILE))
-            print(f'✅ Final DataFrame processed - Total #rows =  {total_rows}')
+            print(f'✅ Train set processed - Total #rows =  {total_rows}')
 
         else:
             raise Exception(Fore.RED + "⚠️ Please make sure the have correctly been merged before attempting to finalize the preprocessing." + Style.RESET_ALL)
 
-    total_rows = sum(1 for _ in open(PREPROCESSED_TRAIN_FILE))
-    print(f'📁 Processed transactions DataFrame fetched from cache- Total #rows =  {total_rows}')
+# >>>>>>>>>>>>>>>>>>>>TEST SET
+        if test_processed_exists:
+            print("✅ Skipping processing as the preprocessed test dataframe already exists.")
+
+        else:
+            if test_set_exists:
+                print("📁 Loading Test DataFrame iterable for processing from local CSV...")
+                chunks = None
+                chunks = pd.read_csv(MERGED_TEST_FILE, chunksize=CHUNK_SIZE, dtype=DTYPES_MERGED, on_bad_lines='warn')
+
+                total_rows = sum(1 for _ in open(MERGED_TEST_FILE))
+                total_chunks = total_rows // CHUNK_SIZE
+
+                for chunk_id, chunk in enumerate(chunks):
+                    if (chunk_id + 1) % 10 == 0 or chunk_id == total_chunks:
+                        print(f"Already processed {chunk_id + 1} chunks out of {total_chunks}...")
+
+                    preprocessed_test_chunk, _ = post_merging_preprocessor(chunk, preprocessor=fitted_preprocessor, fit=False)
+
+                    # Saving to .csv , appending if file exists, writing it file doesn't exist
+                    if not test_processed_exists:
+                        preprocessed_test_chunk.to_csv(PREPROCESSED_TEST_FILE, mode='w', header=True, index=False)
+                        test_processed_exists = True
+                    else:
+                        preprocessed_test_chunk.to_csv(PREPROCESSED_TEST_FILE, mode='a', header=False, index=False)
+
+                total_rows = sum(1 for _ in open(PREPROCESSED_TEST_FILE))
+                print(f'✅ Test Set processed - Total #rows =  {total_rows}')
+
+            else:
+                raise Exception(Fore.RED + "⚠️ Please make sure the have correctly been merged before attempting to finalize the preprocessing." + Style.RESET_ALL)
+
+    print(f'📁 Processed train/test sets fetched from cache')
     print("🎉 preprocessing() done")
     print(f'🎉 You can now move forward and train your desired model on the preprocessed dataset!')
 
@@ -229,7 +260,7 @@ def training(model_type= MODEL_TYPE):
 
     preprocessed_train = pd.read_csv(PREPROCESSED_TRAIN_FILE, dtype=DTYPES_PREPROCESSED)
 
-    y = preprocessed_train.pop('log_price/m²')
+    y = preprocessed_train.pop('log_price_per_m2')
     X = preprocessed_train
 
 
@@ -313,9 +344,9 @@ def training(model_type= MODEL_TYPE):
         X_departement_val = X_val_categorical[:, 0]
         X_unique_city_val = X_val_categorical[:, 1]
 
-        learning_rate = 0.0001
+        learning_rate = 0.001
         batch_size = 256
-        patience=10
+        patience=5
 
         if model == None:
             model = initialize_keras_model(n_numeric_features=X_train_numeric.shape[1])
@@ -360,9 +391,100 @@ def training(model_type= MODEL_TYPE):
     print("🎉 training() done")
     print(f"🎉 {model_type} model has been successfully trained!")
 
+def evaluate(model_type=MODEL_TYPE):
+
+    preprocessed_test = pd.read_csv(PREPROCESSED_TEST_FILE, dtype=DTYPES_PREPROCESSED)
+
+    y_new = preprocessed_test.pop('log_price_per_m2')
+    X_new = preprocessed_test
+
+    model = load_model(model_type)
+    assert model is not None
+
+    model = compile_keras_model(model, 0.001)
+
+
+    X_test_categorical = keras_preprocessor(X_new).values
+
+    categorical_columns = ['building_type',
+                                'average_outdoor_space',
+                                'large_outdoor_space',
+                                'no_garden',
+                                'small_outdoor_space',
+                                ]
+
+    for col in categorical_columns:
+            X_new[col] = X_new[col].cat.codes
+
+    X_test_numeric= X_new.drop(columns=['departement', 'unique_city_id'], axis=1).astype(DTYPES_KERAS).values
+
+    X_departement = X_test_categorical[:, 0]
+    X_unique_city = X_test_categorical[:, 1]
+
+    X=[X_departement, X_unique_city, X_test_numeric]
+    y=y_new
+
+    metrics_dict = evaluate_model(model=model, X=X, y=y)
+    rmse = metrics_dict["rmse"]
+
+    params = dict(
+        context="evaluate", # Package behavior
+        row_count=len(X_new)
+    )
+
+    save_results(params=params, metrics=metrics_dict)
+
+    print("✅ evaluate() done \n")
+
+    return rmse
+
+
+
+def predict(X_pred: pd.DataFrame = None):
+
+    if X_pred is None:
+        X_pred = pd.DataFrame(pd.read_csv(MERGED_TEST_FILE, dtype=DTYPES_MERGED).iloc[0, :]).T
+
+    model = load_model(model_type=MODEL_TYPE)
+    assert model is not None
+
+    model = compile_keras_model(model, learning_rate=0.001)
+
+    fitted_preprocessor = joblib.load(PREPROCESSOR_PATH)
+    X_pred_processed, _ = post_merging_preprocessor(X_pred, preprocessor=fitted_preprocessor, fit=False)
+    y_true = X_pred_processed['log_price_per_m2']
+    X_pred_processed = X_pred_processed.drop('log_price_per_m2', axis=1)
+
+    X_pred_categorical = keras_preprocessor(X_pred_processed).values
+
+    categorical_columns = ['building_type',
+                                'average_outdoor_space',
+                                'large_outdoor_space',
+                                'no_garden',
+                                'small_outdoor_space',
+                                ]
+
+    for col in categorical_columns:
+            X_pred_processed[col] = X_pred_processed[col].cat.codes
+
+    X_pred_numeric= X_pred_processed.drop(columns=['departement', 'unique_city_id'], axis=1).astype(DTYPES_KERAS).values
+
+    X_pred_departement = X_pred_categorical[:, 0]
+    X_pred_unique_city = X_pred_categorical[:, 1]
+
+    X_pred=[X_pred_departement, X_pred_unique_city, X_pred_numeric]
+    y_pred = model.predict(X_pred)
+
+    print("\n✅ Prediction done: ", np.exp(y_pred.squeeze()))
+    print(f"✅ True value of the property: {np.exp(y_true.squeeze())}")
+    print(f"✅ Error: {np.abs(np.exp(y_true.squeeze()) - np.exp(y_pred.squeeze()))}")
+
+    return y_pred
 
 
 if __name__ == '__main__':
-    # clean_new_mortgages_df, clean_tax_households_df, clean_interest_rates_df, clean_debt_ratio_df = cleaning_in_chunks()
-    # preprocessing_in_chunks(clean_new_mortgages_df, clean_tax_households_df, clean_interest_rates_df, clean_debt_ratio_df)
+    cleaning_in_chunks()
+    preprocessing_in_chunks()
     training(model_type=MODEL_TYPE)
+    evaluate(model_type=MODEL_TYPE)
+    predict(pd.DataFrame(pd.read_csv(MERGED_TEST_FILE, dtype=DTYPES_MERGED).iloc[75, :]).T)
