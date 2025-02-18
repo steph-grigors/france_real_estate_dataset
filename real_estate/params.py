@@ -1,4 +1,12 @@
 import os
+import python-dotenv
+
+from python-dotenv import load_dotenv
+
+load_dotenv(dotenv_path='/prod/.env')
+
+print(f"MODEL_TYPE: {os.getenv('MODEL_TYPE')}")
+
 
 ##################  VARIABLES  #####################
 DATA_SIZE = os.environ.get("DATA_SIZE")
@@ -22,14 +30,15 @@ MODEL_TYPE = os.environ.get("MODEL_TYPE")
 
 
 ##################  CONSTANT PATHS  #####################
-LOCAL_PROJECT_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset")
+LOCAL_PROJECT_PATH = os.getenv("LOCAL_PROJECT_PATH", default=os.path.join(os.path.expanduser('~'), "code", "steph-grigors", "real_estate_dataset"))
+
 LOCAL_DATA_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data")
 LOCAL_REGISTRY_PATH = os.path.join(os.path.expanduser('~'), "code","steph-grigors", "real_estate_dataset", "artifacts")
 
-RAW_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'raw_dataset')
-CLEANED_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'cleaned_dataset')
-MERGED_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'merged_dataset')
-PROCESSED_DATASET_FOLDER = os.path.join(os.path.expanduser('~'), "code","steph-grigors","real_estate_dataset","data", 'processed_dataset')
+RAW_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'raw_dataset')
+CLEANED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'cleaned_dataset')
+MERGED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'merged_dataset')
+PROCESSED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'processed_dataset')
 
 
 

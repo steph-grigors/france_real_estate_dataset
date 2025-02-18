@@ -16,3 +16,5 @@ tensorflow
 xgboost
 fastapi
 uvicorn
+python-dotenv
+

@@ -3,8 +3,6 @@ FROM python:3.10.6-buster
 WORKDIR /prod
 
 COPY requirements_prod.txt requirements_prod.txt
-COPY city_mapping.csv city_mapping.csv
-COPY preprocessor.pkl preprocessor.pkl
 COPY real_estate real_estate
 
 RUN python -m venv /venv && /venv/bin/pip install --no-cache-dir -r requirements_prod.txt
