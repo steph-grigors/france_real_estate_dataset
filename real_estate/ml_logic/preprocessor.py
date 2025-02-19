@@ -113,6 +113,7 @@ def post_merging_preprocessor(X: pd.DataFrame, preprocessor = None, fit: bool = 
         X_processed = preprocessor.transform(X)
 
 
+
     # Get column names for the transformed features
     transformed_feature_names = (
             ['n_rooms', 'new_mortgages','debt_ratio','interest_rates'] +  # NUMBER OF ROOMS + TEMPORAL FEATURES PIPES - MINMAX

@@ -43,13 +43,16 @@ def predict(
 
     X_pred = pd.DataFrame(locals(), index=[0])
 
+    # Ensure model is loaded
+    if app.state.model is None:
+        print("⚠️ Model was not loaded at startup, reloading now...")
+        app.state.model = load_model(model_type=MODEL_TYPE)
+
     model = app.state.model
-    assert model is not None
+    assert model is not None, "❌ Model failed to load"
 
     fitted_preprocessor = joblib.load(PREPROCESSOR_PATH)
     X_pred_processed, _ = post_merging_preprocessor(X_pred, preprocessor=fitted_preprocessor, fit=False)
-    y_true = X_pred_processed['log_price_per_m2']
-    X_pred_processed = X_pred_processed.drop('log_price_per_m2', axis=1)
 
     X_pred_categorical = keras_preprocessor(X_pred_processed).values
 
@@ -72,12 +75,13 @@ def predict(
     y_pred = model.predict(X_pred)
 
     print("\n✅ Prediction done: ", np.exp(y_pred.squeeze()))
-    print(f"✅ True value of the property: {np.exp(y_true.squeeze())}")
-    print(f"✅ Error: {np.abs(np.exp(y_true.squeeze()) - np.exp(y_pred.squeeze()))}")
-
     return dict(price_per_sq_meter = float(y_pred))
 
 
 @app.get("/")
 def root():
     pass
+
+if __name__ == "__main__":
+    predict(24260,-0.8660254037844384,-0.5000000000000004,27,"(27, 185)",67.0,"Maison",2,"No garden",26094000000.0,102.92333,1.09,263.55555555555554,28603.32777777778
+)

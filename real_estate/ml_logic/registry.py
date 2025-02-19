@@ -4,6 +4,7 @@ import time
 import pickle
 
 from colorama import Fore, Style
+import tensorflow as tf
 from tensorflow import keras
 import xgboost as xgb
 from google.cloud import storage
@@ -95,6 +96,11 @@ def load_model(model_type = MODEL_TYPE):
     Return None (but do not Raise) if no model is found
 
     """
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    tf.config.set_visible_devices([], "GPU")
+
+
     if MODEL_TARGET == "local":
         print(Fore.BLUE + f"\nLoad latest model from local registry..." + Style.RESET_ALL)
 
@@ -104,11 +110,7 @@ def load_model(model_type = MODEL_TYPE):
         elif model_type == 'keras':
             local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models", "keras")
 
-        # print(f"Local model directory: {local_model_directory}")
-
-
         local_model_paths = glob.glob(f"{local_model_directory}/*")
-        # print(f"Found model paths: {local_model_paths}")
 
 
         if not local_model_paths:
