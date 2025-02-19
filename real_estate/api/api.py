@@ -41,7 +41,7 @@ def predict(
     n_tax_households: float,
     average_tax_income: float):
 
-    X_pred_df = pd.DataFrame(locals(), index=[0])
+    X_pred = pd.DataFrame(locals(), index=[0])
 
     model = app.state.model
     assert model is not None
