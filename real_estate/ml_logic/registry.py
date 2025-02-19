@@ -104,11 +104,11 @@ def load_model(model_type = MODEL_TYPE):
         elif model_type == 'keras':
             local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models", "keras")
 
-        print(f"Local model directory: {local_model_directory}")
+        # print(f"Local model directory: {local_model_directory}")
 
 
         local_model_paths = glob.glob(f"{local_model_directory}/*")
-        print(f"Found model paths: {local_model_paths}")
+        # print(f"Found model paths: {local_model_paths}")
 
 
         if not local_model_paths:

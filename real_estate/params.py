@@ -38,7 +38,7 @@ LOCAL_REGISTRY_PATH = os.path.join(LOCAL_PROJECT_PATH, "artifacts")
 RAW_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'raw_dataset')
 CLEANED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'cleaned_dataset')
 MERGED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'merged_dataset')
-PROCESSED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'processed_dataset')
+PREPROCESSED_DATASET_FOLDER = os.path.join(LOCAL_PROJECT_PATH,"data", 'preprocessed_dataset')
 
 
 
@@ -48,14 +48,15 @@ RAW_DATASET_CHUNKS_DIR = os.path.join(RAW_DATASET_FOLDER, "raw_dataset_chunks")
 RAW_DATASET_OUTPUT_FILE = os.path.join(RAW_DATASET_FOLDER, "raw_dataset_full", "transactions.csv")
 
 CLEANED_DATASET_FILE = os.path.join(CLEANED_DATASET_FOLDER, "cleaned_transactions_df.csv")
-
 MERGED_DATASET_FILE = os.path.join(MERGED_DATASET_FOLDER, "merged_dataset.csv")
-MERGED_TRAIN_FILE = os.path.join(MERGED_DATASET_FOLDER,"train_set", "train.csv")
-MERGED_TEST_FILE = os.path.join(MERGED_DATASET_FOLDER, "test_set", "test.csv")
 
-PREPROCESSED_TRAIN_FILE = os.path.join(PROCESSED_DATASET_FOLDER, "train_preprocessed.csv")
-PREPROCESSED_TEST_FILE = os.path.join(PROCESSED_DATASET_FOLDER, "test_preprocessed.csv")
+X_TRAIN = os.path.join(MERGED_DATASET_FOLDER,"train_set", "X_train.csv")
+Y_TRAIN = os.path.join(MERGED_DATASET_FOLDER,"train_set", "y_train.csv")
+X_TEST = os.path.join(MERGED_DATASET_FOLDER, "test_set", "X_test.csv")
+Y_TEST = os.path.join(MERGED_DATASET_FOLDER, "test_set", "y_test.csv")
 
+X_TRAIN_PREPROC = os.path.join(PREPROCESSED_DATASET_FOLDER, "X_train_preprocessed.csv")
+X_TEST_PREPROC = os.path.join(PREPROCESSED_DATASET_FOLDER, "X_test_preprocessed.csv")
 
 
 ##################  ARTIFACTS & TRAINING PARAMS PATH   #####################
@@ -115,7 +116,6 @@ DTYPES_MERGED= {
     "unique_city_id": "string",
     "building_type": "string",
     "outdoor_area": "string",
-    "log_price_per_m2": "float64",
     "living_area": "float32"
 }
 
@@ -136,7 +136,6 @@ DTYPES_PREPROCESSED= {
     "average_outdoor_space": "category",
     "large_outdoor_space": "category",
     "building_type": "category",
-    "log_price_per_m2": "float64",
     "living_area": "float32",
 }
 

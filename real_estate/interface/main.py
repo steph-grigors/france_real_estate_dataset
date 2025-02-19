@@ -34,7 +34,6 @@ def cleaning_in_chunks() -> None:
     cleaned_dataset_exists =  os.path.isfile(CLEANED_DATASET_FILE) and os.path.getsize(CLEANED_DATASET_FILE) > 0
 
 #######################################  CLEANING TRANSACTIONS MAIN DF ####################################################################
-
     # Assigning local path for saving the cleaned transactions DataFrame
     if cleaned_dataset_exists:
 
@@ -53,6 +52,7 @@ def cleaning_in_chunks() -> None:
     else:
         if raw_dataset_exists:
             print("📁 Raw transactions DataFrame iterable fetched from local CSV...")
+
             chunks = None
             chunks = pd.read_csv(RAW_DATASET_OUTPUT_FILE, chunksize=CHUNK_SIZE)
 
@@ -97,25 +97,26 @@ def cleaning_in_chunks() -> None:
 #######################################  CLEANING SECONDARY DFs ####################################################################
 
     # Cleaning secondary DataFrames using clean_data() function from data.py
-    cleaned_dataframes_dictionnary = clean_data()
+    clean_data()
 
     print(f'✅ Secondary DataFrames cleaned and saved')
-
-    # clean_new_mortgages_df = cleaned_dataframes_dictionnary['flux_nouveaux_emprunts_df']
-    # clean_tax_households_df = cleaned_dataframes_dictionnary['foyers_fiscaux_df']
-    # clean_interest_rates_df = cleaned_dataframes_dictionnary['taux_interet_df']
-    # clean_debt_ratio_df = cleaned_dataframes_dictionnary['taux_endettement_df']
-
     print('🎉 Cleaning and mapping done')
     print('🎉 You can now preprocess the DataFrames before being able to train a model!\n')
 
 
 def preprocessing_in_chunks() -> None:
 
-    clean_new_mortgages_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_flux_nouveaux_emprunts_df.csv'))
-    clean_tax_households_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_foyers_fiscaux_df.csv'))
-    clean_interest_rates_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_taux_interet_df.csv'))
-    clean_debt_ratio_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_taux_endettement_df.csv'))
+    clean_dfs_dictionnary = clean_data()
+
+    clean_new_mortgages_df = clean_dfs_dictionnary['flux_nouveaux_emprunts_df']
+    clean_tax_households_df = clean_dfs_dictionnary['foyers_fiscaux_df']
+    clean_interest_rates_df = clean_dfs_dictionnary['taux_interet_df']
+    clean_debt_ratio_df = clean_dfs_dictionnary['taux_endettement_df']
+
+    # clean_new_mortgages_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_flux_nouveaux_emprunts_df.csv'))
+    # clean_tax_households_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_foyers_fiscaux_df.csv'))
+    # clean_interest_rates_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_taux_interet_df.csv'))
+    # clean_debt_ratio_df = pd.read_csv(os.path.join(CLEANED_DATASET_FOLDER,'cleaned_taux_endettement_df.csv'))
 
     #######################################  MERGING DATAFRAMES ####################################################################
 
@@ -128,7 +129,7 @@ def preprocessing_in_chunks() -> None:
 
 
     if merged_dataset_exists:
-        merged_transactions_df = pd.read_csv(MERGED_DATASET_FILE, chunksize=CHUNK_SIZE, dtype=DTYPES_MERGED,  on_bad_lines='warn')
+        merged_transactions_df = pd.read_csv(MERGED_DATASET_FILE, chunksize=CHUNK_SIZE)
         total_rows = sum(1 for _ in open(MERGED_DATASET_FILE))
         print(f'📁 Merged transactions DataFrame fetched from cache- Total #rows =  {total_rows}')
 
@@ -170,8 +171,14 @@ def preprocessing_in_chunks() -> None:
             train_set = X_merged.iloc[:train_size].copy()
             test_set = X_merged.iloc[train_size:].copy()
 
-            train_set.to_csv(MERGED_TRAIN_FILE, index=False)
-            test_set.to_csv(MERGED_TEST_FILE, index=False)
+            y_train = train_set.pop("log_price_per_m2")
+            X_train = train_set
+
+            y_test = test_set.pop("log_price_per_m2")
+            X_test = test_set
+
+            for dataset, path in zip([X_train, y_train, X_test, y_test], [X_TRAIN, Y_TRAIN, X_TEST, Y_TEST]):
+                dataset.to_csv(path, index=False)
 
         else:
             raise Exception(Fore.RED + "⚠️ Please make sure the DataFrames have already been cleaned before attempting to further merge them." + Style.RESET_ALL)
@@ -182,21 +189,21 @@ def preprocessing_in_chunks() -> None:
 #######################################  STATEFUL PREPROCESSOR ####################################################################
 
 # >>>>>>>>>>>>>>>>>>>>TRAIN SET
-    train_processed_exists = os.path.isfile(PREPROCESSED_TRAIN_FILE)
-    train_set_exists=  os.path.isfile(MERGED_TRAIN_FILE)
-    test_set_exists = os.path.isfile(MERGED_TEST_FILE)
-    test_processed_exists = os.path.isfile(PREPROCESSED_TEST_FILE)
+    X_train_preprocessed_exists = os.path.isfile(X_TRAIN_PREPROC)
+    X_train_set_exists=  os.path.isfile(X_TRAIN)
+    X_test_set_exists = os.path.isfile(X_TEST)
+    X_test_preprocessed_exists = os.path.isfile(X_TEST_PREPROC)
 
-    if train_processed_exists and test_processed_exists:
+    if X_train_preprocessed_exists and X_test_preprocessed_exists:
         print("✅ Skipping processing as the preprocessed train dataframe already exists.")
 
     else:
-        if train_set_exists:
+        if X_train_set_exists:
             print("📁 Loading Train DataFrame iterable for processing from local CSV...")
             chunks = None
-            chunks = pd.read_csv(MERGED_TRAIN_FILE, chunksize=CHUNK_SIZE, dtype=DTYPES_MERGED, on_bad_lines='warn')
+            chunks = pd.read_csv(X_TRAIN, chunksize=CHUNK_SIZE, dtype=DTYPES_MERGED, on_bad_lines='warn')
 
-            total_rows = sum(1 for _ in open(MERGED_TRAIN_FILE))
+            total_rows = sum(1 for _ in open(X_TRAIN))
             total_chunks = total_rows // CHUNK_SIZE
 
             for chunk_id, chunk in enumerate(chunks):
@@ -207,29 +214,29 @@ def preprocessing_in_chunks() -> None:
                 joblib.dump(fitted_preprocessor, PREPROCESSOR_PATH)
 
                 # Saving to .csv , appending if file exists, writing it file doesn't exist
-                if not train_processed_exists:
-                    preprocessed_train_chunk.to_csv(PREPROCESSED_TRAIN_FILE, mode='w', header=True, index=False)
-                    train_processed_exists = True
+                if not X_train_preprocessed_exists:
+                    preprocessed_train_chunk.to_csv(X_TRAIN_PREPROC, mode='w', header=True, index=False)
+                    X_train_preprocessed_exists = True
                 else:
-                    preprocessed_train_chunk.to_csv(PREPROCESSED_TRAIN_FILE, mode='a', header=False, index=False)
+                    preprocessed_train_chunk.to_csv(X_TRAIN_PREPROC, mode='a', header=False, index=False)
 
-            total_rows = sum(1 for _ in open(PREPROCESSED_TRAIN_FILE))
+            total_rows = sum(1 for _ in open(X_TRAIN_PREPROC))
             print(f'✅ Train set processed - Total #rows =  {total_rows}')
 
         else:
-            raise Exception(Fore.RED + "⚠️ Please make sure the have correctly been merged before attempting to finalize the preprocessing." + Style.RESET_ALL)
+            raise Exception(Fore.RED + "⚠️ Please make sure the DataFrames have correctly been merged before attempting to finalize the preprocessing." + Style.RESET_ALL)
 
 # >>>>>>>>>>>>>>>>>>>>TEST SET
-        if test_processed_exists:
+        if X_test_preprocessed_exists:
             print("✅ Skipping processing as the preprocessed test dataframe already exists.")
 
         else:
-            if test_set_exists:
+            if X_test_set_exists:
                 print("📁 Loading Test DataFrame iterable for processing from local CSV...")
                 chunks = None
-                chunks = pd.read_csv(MERGED_TEST_FILE, chunksize=CHUNK_SIZE, dtype=DTYPES_MERGED, on_bad_lines='warn')
+                chunks = pd.read_csv(X_TEST, chunksize=CHUNK_SIZE, dtype=DTYPES_MERGED, on_bad_lines='warn')
 
-                total_rows = sum(1 for _ in open(MERGED_TEST_FILE))
+                total_rows = sum(1 for _ in open(X_TEST))
                 total_chunks = total_rows // CHUNK_SIZE
 
                 for chunk_id, chunk in enumerate(chunks):
@@ -239,13 +246,13 @@ def preprocessing_in_chunks() -> None:
                     preprocessed_test_chunk, _ = post_merging_preprocessor(chunk, preprocessor=fitted_preprocessor, fit=False)
 
                     # Saving to .csv , appending if file exists, writing it file doesn't exist
-                    if not test_processed_exists:
-                        preprocessed_test_chunk.to_csv(PREPROCESSED_TEST_FILE, mode='w', header=True, index=False)
-                        test_processed_exists = True
+                    if not X_test_preprocessed_exists:
+                        preprocessed_test_chunk.to_csv(X_TEST_PREPROC, mode='w', header=True, index=False)
+                        X_test_preprocessed_exists = True
                     else:
-                        preprocessed_test_chunk.to_csv(PREPROCESSED_TEST_FILE, mode='a', header=False, index=False)
+                        preprocessed_test_chunk.to_csv(X_TEST_PREPROC, mode='a', header=False, index=False)
 
-                total_rows = sum(1 for _ in open(PREPROCESSED_TEST_FILE))
+                total_rows = sum(1 for _ in open(X_TEST_PREPROC))
                 print(f'✅ Test Set processed - Total #rows =  {total_rows}')
 
             else:
@@ -258,11 +265,13 @@ def preprocessing_in_chunks() -> None:
 
 def training(model_type= MODEL_TYPE):
 
-    preprocessed_train = pd.read_csv(PREPROCESSED_TRAIN_FILE, dtype=DTYPES_PREPROCESSED)
+    X_train_preproc = pd.read_csv(X_TRAIN_PREPROC, dtype=DTYPES_PREPROCESSED)
+    y_train_preproc = pd.read_csv(Y_TRAIN, dtype="float64")
 
-    y = preprocessed_train.pop('log_price_per_m2')
-    X = preprocessed_train
+    X_train_preproc["log_price_per_m2"] = y_train_preproc
 
+    y = X_train_preproc.pop('log_price_per_m2')
+    X = X_train_preproc
 
    # Further splits the training dataset into training and validation sets with a 80-20 ratio.
     val_split_index = int(0.8 * len(X))
@@ -346,7 +355,7 @@ def training(model_type= MODEL_TYPE):
 
         learning_rate = 0.001
         batch_size = 256
-        patience=5
+        patience=2
 
         if model == None:
             model = initialize_keras_model(n_numeric_features=X_train_numeric.shape[1])
@@ -393,10 +402,15 @@ def training(model_type= MODEL_TYPE):
 
 def evaluate(model_type=MODEL_TYPE):
 
-    preprocessed_test = pd.read_csv(PREPROCESSED_TEST_FILE, dtype=DTYPES_PREPROCESSED)
+    X_test_preproc = pd.read_csv(X_TEST_PREPROC, dtype=DTYPES_PREPROCESSED)
+    y_test_preproc = pd.read_csv(Y_TEST, dtype="float64")
 
-    y_new = preprocessed_test.pop('log_price_per_m2')
-    X_new = preprocessed_test
+    X_test_preproc["log_price_per_m²"] = y_test_preproc
+
+    ipdb.set_trace()
+
+    y_new = X_test_preproc.pop('log_price_per_m²')
+    X_new = X_test_preproc
 
     model = load_model(model_type)
     assert model is not None
@@ -443,7 +457,7 @@ def evaluate(model_type=MODEL_TYPE):
 def predict(X_pred: pd.DataFrame = None):
 
     if X_pred is None:
-        X_pred = pd.DataFrame(pd.read_csv(MERGED_TEST_FILE, dtype=DTYPES_MERGED).iloc[0, :]).T
+        X_pred = pd.DataFrame(pd.read_csv(X_TEST, dtype=DTYPES_MERGED).iloc[0, :]).T
 
     model = load_model(model_type=MODEL_TYPE)
     assert model is not None
@@ -452,8 +466,8 @@ def predict(X_pred: pd.DataFrame = None):
 
     fitted_preprocessor = joblib.load(PREPROCESSOR_PATH)
     X_pred_processed, _ = post_merging_preprocessor(X_pred, preprocessor=fitted_preprocessor, fit=False)
-    y_true = X_pred_processed['log_price_per_m2']
-    X_pred_processed = X_pred_processed.drop('log_price_per_m2', axis=1)
+    # y_true = X_pred_processed['log_price_per_m2']
+    # X_pred_processed = X_pred_processed.drop('log_price_per_m2', axis=1)
 
     X_pred_categorical = keras_preprocessor(X_pred_processed).values
 
@@ -476,8 +490,8 @@ def predict(X_pred: pd.DataFrame = None):
     y_pred = model.predict(X_pred)
 
     print("\n✅ Prediction done: ", np.exp(y_pred.squeeze()))
-    print(f"✅ True value of the property: {np.exp(y_true.squeeze())}")
-    print(f"✅ Error: {np.abs(np.exp(y_true.squeeze()) - np.exp(y_pred.squeeze()))}")
+    # print(f"✅ True value of the property: {np.exp(y_true.squeeze())}")
+    # print(f"✅ Error: {np.abs(np.exp(y_true.squeeze()) - np.exp(y_pred.squeeze()))}")
 
     return y_pred
 
@@ -487,4 +501,4 @@ if __name__ == '__main__':
     preprocessing_in_chunks()
     training(model_type=MODEL_TYPE)
     evaluate(model_type=MODEL_TYPE)
-    predict(pd.DataFrame(pd.read_csv(MERGED_TEST_FILE, dtype=DTYPES_MERGED).iloc[75, :]).T)
+    predict(pd.DataFrame(pd.read_csv(X_TEST, dtype=DTYPES_MERGED).iloc[49, :]).T)

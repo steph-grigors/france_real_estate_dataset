@@ -12,10 +12,9 @@ from keras.callbacks import EarlyStopping
 from keras.metrics import RootMeanSquaredError
 
 
-
-
 def baseline_model():
  pass
+
 def xgboost_model(params):
 
     """
@@ -192,4 +191,3 @@ def evaluate_model(
     print(f"✅ Model evaluated, RMSE: {round(rmse, 2)}")
 
     return metrics
-
