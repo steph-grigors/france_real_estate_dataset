@@ -12,6 +12,7 @@ https://www.kaggle.com/datasets/benoitfavier/immobilier-france?resource=download
 
 ### **Project Structure**
 
+```
 project-root
 ├── artifacts
 │   ├── metrics
@@ -54,6 +55,7 @@ project-root
 ├── requirements_prod.txt
 ├── requirements.txt
 └── setup.py
+```
 
 
 ### **Dependencies**
