@@ -1,4 +1,4 @@
-## __Real Estate in France from 2014 to 20240__
+## __Real Estate in France from 2014 to 2024__
 
 ### **Overview**
 
@@ -91,7 +91,7 @@ pip install -r requirements.txt
 The Makefile provides commands to streamline package management, data processing, model training, and deployment.
 
 ```
-Package Management
+### Package Management
 
 make reinstall_package – Reinstalls the real-estate package.
 make run_work_env – Displays the current environment.
@@ -104,12 +104,14 @@ make run_train – Trains the model.
 make run_evaluate – Evaluates the model.
 make run_predict – Runs predictions.
 make run_all – Executes cleaning, preprocessing, training, evaluation, and prediction sequentially.
-Deployment
+
+### Deployment
 
 make run_create_docker_image – Builds the Docker image.
 make run_build_docker_container – Runs the API in a Docker container.
 make run_api – Starts the FastAPI server locally.
-Setup & Cleanup
+
+### Setup & Cleanup
 
 make init-directories – Creates necessary project directories.
 make clean – Removes temporary and cache files.
