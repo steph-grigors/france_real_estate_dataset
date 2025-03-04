@@ -120,72 +120,84 @@ make clean – Removes temporary and cache files.
 
 ### **Data Pipeline Workflow**
 
-1) Data Extraction
+# Project Pipeline
 
-Input: .npz file containing raw tabular data.
-Output: .parquet file (raw_dataset.parquet) for efficient storage and processing.
+## 1) Data Extraction
 
-Steps:
-Load the .npz file using NumPy.
-Convert the dataset into a Pandas DataFrame.
-Save the DataFrame in Parquet format for optimized processing.
+**Input**: .npz file containing raw tabular data.
+**Output**: .parquet file (`raw_dataset.parquet`) for efficient storage and processing.
 
-2) Data Cleaning (Chunk-Based Processing)
+**Steps**:
+- Load the .npz file using NumPy.
+- Convert the dataset into a Pandas DataFrame.
+- Save the DataFrame in Parquet format for optimized processing.
 
-Input: raw_dataset.parquet.
-Output: cleaned_dataset.parquet.
+---
 
-Steps:
-Load the raw dataset in chunks to handle large file sizes efficiently.
-Perform type casting according to predefined DTYPES_RAW.
-Apply city mappings to standardize city names.
-Remove duplicates and handle missing values.
-Save the cleaned data back to Parquet format in chunks, merging them at the end.
+## 2) Data Cleaning (Chunk-Based Processing)
 
-3) Data Preprocessing (Feature Engineering & Splitting)
+**Input**: `raw_dataset.parquet`.
+**Output**: `cleaned_dataset.parquet`.
 
-Input: cleaned_dataset.parquet.
-Output: preprocessed_train.parquet, preprocessed_test.parquet.
+**Steps**:
+- Load the raw dataset in chunks to handle large file sizes efficiently.
+- Perform type casting according to predefined `DTYPES_RAW`.
+- Apply city mappings to standardize city names.
+- Remove duplicates and handle missing values.
+- Save the cleaned data back to Parquet format in chunks, merging them at the end.
 
-Steps:
-Load the cleaned dataset in chunks.
-Merge with external datasets for additional feature enrichment.
-Apply train-test split while ensuring stratification.
-Perform feature transformations, including:
-One-hot encoding for categorical features.
-Scaling numerical features using MinMax or Standard Scaler.
-Save the final train and test sets in Parquet format.
+---
 
-4) Model Training
+## 3) Data Preprocessing (Feature Engineering & Splitting)
 
-Input: preprocessed_train.parquet.
-Output: Trained model saved locally or in cloud storage.
+**Input**: `cleaned_dataset.parquet`.
+**Output**: `preprocessed_train.parquet`, `preprocessed_test.parquet`.
 
-Steps:
-Load preprocessed training data.
-Split into training and validation sets (80-20 split).
-Train one of the following models:
-XGBoost: Uses decision trees for regression.
-Keras Neural Network: Incorporates embeddings for categorical variables.
-Save model weights and training results for reproducibility.
+**Steps**:
+- Load the cleaned dataset in chunks.
+- Merge with external datasets for additional feature enrichment.
+- Apply train-test split while ensuring stratification.
+- Perform feature transformations, including:
+  - One-hot encoding for categorical features.
+  - Scaling numerical features using MinMax or Standard Scaler.
+- Save the final train and test sets in Parquet format.
 
-5) Model Evaluation
+---
 
-Input: preprocessed_test.parquet.
-Output: Model evaluation metrics (RMSE, MAE, etc.).
+## 4) Model Training
 
-Steps:
-Load the test dataset.
-Preprocess categorical and numerical features accordingly.
-Load the trained model and evaluate it on the test set.
-Log and save evaluation metrics for further analysis.
+**Input**: `preprocessed_train.parquet`.
+**Output**: Trained model saved locally or in cloud storage.
 
-6) Model Prediction
+**Steps**:
+- Load preprocessed training data.
+- Split into training and validation sets (80-20 split).
+- Train one of the following models:
+  - XGBoost: Uses decision trees for regression.
+  - Keras Neural Network: Incorporates embeddings for categorical variables.
+- Save model weights and training results for reproducibility.
 
-Input: New data (X_pred).
-Output: Predicted real estate price per square meter.
+---
 
-Steps:
-Load the trained model.
-Preprocess the input data using the same pipeline as training.
-Generate predictions and return the results.
+## 5) Model Evaluation
+
+**Input**: `preprocessed_test.parquet`.
+**Output**: Model evaluation metrics (RMSE, MAE, etc.).
+
+**Steps**:
+- Load the test dataset.
+- Preprocess categorical and numerical features accordingly.
+- Load the trained model and evaluate it on the test set.
+- Log and save evaluation metrics for further analysis.
+
+---
+
+## 6) Model Prediction
+
+**Input**: New data (`X_pred`).
+**Output**: Predicted real estate price per square meter.
+
+**Steps**:
+- Load the trained model.
+- Preprocess the input data using the same pipeline as training.
+- Generate predictions and return the results.
