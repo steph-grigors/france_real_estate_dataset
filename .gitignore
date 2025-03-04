@@ -11,7 +11,6 @@ __pycache__
 *checkpoint.ipynb
 *.ipynb_checkpoints
 real_estate_notebook.ipynb
-notebooks/data
 
 
 # inteliJ #
@@ -26,14 +25,16 @@ mlruns
 *.pickle
 *.json
 *.h5
+*.parquet
+*npz
 
 # artifacts
 artifacts/models/*
 artifacts/params/*
 artifacts/metrics/*
 
-
-
+# real_estate_csv
+real_estate/*
 
 # IDE #
 *.vscode
