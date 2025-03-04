@@ -61,6 +61,7 @@ project-root
 ### **Dependencies**
 The following packages are required to run the project:
 
+```
 colorama
 numpy
 pandas
@@ -77,16 +78,19 @@ fastapi
 pytz
 uvicorn
 python-dotenv
+```
 
-_You can install the dependencies using:_
+You can install the dependencies using:
+```
 pip install -r requirements.txt
+```
 
 
 ### **Makefile Overview**
 
 The Makefile provides commands to streamline package management, data processing, model training, and deployment.
 
-Key Commands:
+```
 Package Management
 
 make reinstall_package – Reinstalls the real-estate package.
@@ -109,6 +113,7 @@ Setup & Cleanup
 
 make init-directories – Creates necessary project directories.
 make clean – Removes temporary and cache files.
+```
 
 
 ### **Data Pipeline Workflow**
