@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import joblib
 
-from real_estate.ml_logic.registry import load_model
-from real_estate.ml_logic.preprocessor import post_merging_preprocessor, keras_preprocessor
-from real_estate.params import *
+from real_estate_parquet.ml_logic.registry import load_model
+from real_estate_parquet.ml_logic.preprocessor import post_merging_preprocessor, keras_preprocessor
+from real_estate_parquet.params import *
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

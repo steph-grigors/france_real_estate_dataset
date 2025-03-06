@@ -6,8 +6,8 @@ from sklearn.compose import ColumnTransformer, make_column_transformer
 from sklearn.preprocessing import OneHotEncoder, FunctionTransformer, StandardScaler, MinMaxScaler
 
 
-from real_estate.ml_logic.encoders import *
-from real_estate.params import *
+from real_estate_csv.ml_logic.encoders import *
+from real_estate_csv.params import *
 
 
 def stateless_preprocessor(X: pd.DataFrame) -> pd.DataFrame:

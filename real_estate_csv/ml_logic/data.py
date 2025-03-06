@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
-from real_estate.params import *
+from real_estate_csv.params import *
 
 class real_estate:
     def get_data(self):

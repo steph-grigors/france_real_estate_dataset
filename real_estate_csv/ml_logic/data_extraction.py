@@ -3,7 +3,7 @@ import pandas as pd
 import glob
 import time
 import numpy as np
-from real_estate.params import *
+from real_estate_csv.params import *
 
 # File paths and configuration
 npz_file_path = os.path.join(LOCAL_DATA_PATH, "transactions.npz")

@@ -7,15 +7,15 @@ import ipdb
 
 from colorama import Fore, Style
 
-from real_estate.ml_logic import *
-from real_estate.ml_logic.data_extraction import *
-from real_estate.ml_logic.data import *
-from real_estate.ml_logic.preprocessor import *
-from real_estate.ml_logic.model import xgboost_model, train_xgb_model, initialize_keras_model, compile_keras_model, train_keras_model, evaluate_model
-from real_estate.ml_logic.registry import save_model, save_results, load_model
+from real_estate_csv.ml_logic import *
+from real_estate_csv.ml_logic.data_extraction import *
+from real_estate_csv.ml_logic.data import *
+from real_estate_csv.ml_logic.preprocessor import *
+from real_estate_csv.ml_logic.model import xgboost_model, train_xgb_model, initialize_keras_model, compile_keras_model, train_keras_model, evaluate_model
+from real_estate_csv.ml_logic.registry import save_model, save_results, load_model
 
-from real_estate.params import *
-from real_estate.utils import *
+from real_estate_csv.params import *
+from real_estate_csv.utils import *
 
 
 

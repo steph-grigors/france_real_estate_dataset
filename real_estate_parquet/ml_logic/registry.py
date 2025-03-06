@@ -9,7 +9,7 @@ from tensorflow import keras
 import xgboost as xgb
 from google.cloud import storage
 
-from real_estate.params import *
+from real_estate_parquet.params import *
 
 def save_results(params: dict, metrics: dict, model_type = MODEL_TYPE) -> None:
     """

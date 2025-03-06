@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import pyarrow.parquet as pq
 import pyarrow as pa
-from real_estate.params import *
+from real_estate_parquet.params import *
 
 # File paths and configuration
 npz_file_path = os.path.join(LOCAL_DATA_PATH, "raw_dataset", "transactions.npz")
